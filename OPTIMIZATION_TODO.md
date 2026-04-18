@@ -7,14 +7,14 @@
 ## P0 — Critical (Do First)
 
 ### P0.1 Remove/fix placeholder tabs (ChatMode / HistoryMode)
-**Status**: 🔄 In Progress  
+**Status**: ✅ Done  
 **Files**: `web/src/components/ChatPanel/ChatMode.tsx`, `HistoryMode.tsx`, `index.tsx`  
 **Problem**: Non-functional placeholder tabs confuse users.  
 **Solution**: Add `ComingSoon` empty-state component with illustration + description.  
 **Tests**: Visual regression (manual).  
 
 ### P0.2 Improve generated code result area
-**Status**: ⏳ Pending  
+**Status**: ✅ Done  
 **Files**: `web/src/components/ChatPanel/index.tsx`  
 **Problem**: Code preview only shows 800 chars; no quick actions; validation panel defaults expanded.  
 **Solution**:
@@ -25,7 +25,7 @@
 **Tests**: Component render tests.  
 
 ### P0.3 Issue click-to-jump to editor line
-**Status**: ⏳ Pending  
+**Status**: ✅ Done  
 **Files**: `web/src/components/ValidationPanel/index.tsx`, `STEditor/index.tsx`  
 **Problem**: Users must manually find error lines.  
 **Solution**:
@@ -39,7 +39,7 @@
 ## P1 — High Priority
 
 ### P1.1 Collapsible left/right sidebars
-**Status**: ⏳ Pending  
+**Status**: ✅ Done  
 **Files**: `web/src/App.tsx`  
 **Problem**: Middle editor squeezed on laptop screens.  
 **Solution**:
@@ -49,7 +49,7 @@
 **Tests**: Layout math tests (ensure min width).  
 
 ### P1.2 Generation progress indicator
-**Status**: ⏳ Pending  
+**Status**: ✅ Done  
 **Files**: `web/src/components/ChatPanel/index.tsx`, `@services/api/ai.ts`  
 **Problem**: 10-30s generation with only a spinner.  
 **Solution**:
@@ -58,7 +58,7 @@
 **Tests**: Mock SSE stream test.  
 
 ### P1.3 ProjectTree grouping + context menu
-**Status**: ⏳ Pending  
+**Status**: ✅ Done  
 **Files**: `web/src/components/ProjectTree/index.tsx`  
 **Problem**: Flat list, no organization.  
 **Solution**:
@@ -68,7 +68,7 @@
 **Tests**: Interaction tests.  
 
 ### P1.4 Global search / command palette (Ctrl+K)
-**Status**: ⏳ Pending  
+**Status**: ✅ Done  
 **Files**: New `CommandPalette.tsx`, `App.tsx`, `TopBar/index.tsx`  
 **Problem**: No quick navigation.  
 **Solution**:
@@ -143,3 +143,10 @@
 - **Added**: Validation log export (JSON/CSV) — `stValidator.ts`, `ValidationPanel/index.tsx`
 - **Fixed**: LD vertical stacking bug — `LadderView/index.tsx`
 - **Improved**: Parser layout spacing — `stParser.ts`
+- **P0.1**: ComingSoon empty-state for ChatMode/HistoryMode placeholders — `ChatPanel/index.tsx`
+- **P0.2**: Action bar (regenerate/modify/copy/export), taller preview, validation panel default collapsed
+- **P0.3**: Click issue line number → jump to editor line with orange highlight — `uiStore.ts`, `Editor/index.tsx`, `ValidationPanel/index.tsx`
+- **P1.1**: Collapsible left/right sidebars with hover-reveal toggle buttons — `AppLayout.tsx`
+- **P1.2**: 4-step generation progress indicator (analyze → plan vars → write logic → verify safety)
+- **P1.3**: ProjectTree grouping by POU type, context menu (rename/duplicate/delete), line count + validation badges
+- **P1.4**: Global command palette (Ctrl+K) with `@`/#/`>` prefix filtering for POU/var/command search

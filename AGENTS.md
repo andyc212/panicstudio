@@ -53,7 +53,7 @@ App.tsx
 6. **Auth persistence** — `isAuthenticated` + `user` persisted in Zustand
 
 ### Active Optimizations (P0 → P3)
-See `OPTIMIZATION_TODO.md` for full list. Currently executing P0 items.
+See `OPTIMIZATION_TODO.md` for full list. **P0 and P1 are complete.** Currently ready for P2 items.
 
 ### Known Issues
 - Vercel CLI not authenticated (`vercel login` required for auto-deploy)
