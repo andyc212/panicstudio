@@ -188,12 +188,17 @@ function GuidedMode() {
       };
 
       let code = '';
+      let currentStep = 1;
       setGenerationStep(1);
       for await (const chunk of streamAIGeneration(formData as any)) {
         if (chunk.type === 'chunk') {
           code += chunk.content;
           setGeneratedCode(code);
-          setGenerationStep(inferGenerationStep(code));
+          const newStep = inferGenerationStep(code);
+          if (newStep !== currentStep) {
+            currentStep = newStep;
+            setGenerationStep(newStep);
+          }
         } else if (chunk.type === 'error') {
           setError(chunk.error || '生成失败');
         }
@@ -414,6 +419,11 @@ function GuidedMode() {
         </div>
       )}
 
+      {/* Generation Progress */}
+      {isGenerating && generationStep > 0 && (
+        <GenerationProgress step={generationStep} />
+      )}
+
       {/* Generated Preview */}
       {generatedCode && (
         <div className="rounded-lg border border-border bg-base overflow-hidden">
@@ -462,11 +472,6 @@ function GuidedMode() {
         </div>
       )}
 
-      {/* Generation Progress */}
-      {isGenerating && generationStep > 0 && (
-        <GenerationProgress step={generationStep} />
-      )}
-
       {/* Code Validation */}
       {generatedCode && (
         <ValidationPanel
@@ -481,10 +486,14 @@ function GuidedMode() {
   );
 }
 
-function inferGenerationStep(code: string): number {
-  if (code.includes('END_PROGRAM')) return 4;
-  if (code.includes('END_VAR')) return 3;
-  if (code.includes('VAR')) return 2;
+/** Best-effort heuristic to infer generation phase from ST code keywords.
+ *  Note: AI may output keywords out of order; this is for UI feedback only.
+ */
+function inferGenerationStep(code: string): 1 | 2 | 3 | 4 {
+  const upper = code.toUpperCase();
+  if (upper.includes('END_PROGRAM')) return 4;
+  if (upper.includes('END_VAR')) return 3;
+  if (/\bVAR\b/.test(upper)) return 2;
   return 1;
 }
 
