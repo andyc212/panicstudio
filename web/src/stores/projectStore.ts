@@ -76,6 +76,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
           ...state.currentProject,
           poUs: [...state.currentProject.poUs, pou],
         },
+        selectedPouId: pou.id,
         hasUnsavedChanges: true,
       };
     }),

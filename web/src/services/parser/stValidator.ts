@@ -147,7 +147,8 @@ export function validateSTCode(code: string, context?: ValidationContext): Valid
     const usedAddresses = new Set<string>();
 
     // 提取代码中使用的地址（X0, Y1, DT100 等）
-    const addressRegex = /\b([XYRDT][\w]+)\b/gi;
+    // 要求：XYRDT 开头，后面至少跟一个数字，避免匹配 THEN、TRUE、RUNFLAG 等关键字
+    const addressRegex = /\b([XYRDT]\d+\w*)\b/gi;
     let match;
     while ((match = addressRegex.exec(code)) !== null) {
       usedAddresses.add(match[1].toUpperCase());
