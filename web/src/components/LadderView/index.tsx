@@ -40,7 +40,7 @@ export function LadderView() {
   return (
     <div className="flex-1 border-t border-border bg-ld flex flex-col min-h-0">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-base-light">
+      <div className="shrink-0 flex items-center justify-between px-3 py-1.5 border-b border-border bg-base-light">
         <span className="text-xs font-medium text-text-secondary">
           Ladder Diagram {rungs.length > 0 && `(${rungs.length} networks)`}
         </span>
@@ -66,7 +66,7 @@ export function LadderView() {
       </div>
 
       {/* LD Canvas */}
-      <div className="flex-1 flex items-start justify-center overflow-auto p-2">
+      <div className="flex-1 overflow-auto p-2 min-h-0">
         {rungs.length > 0 ? (
           <svg
             width={maxWidth * zoom}

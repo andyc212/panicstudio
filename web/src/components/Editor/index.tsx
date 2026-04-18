@@ -141,8 +141,8 @@ export function STEditor() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-editor min-h-0">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-base-light">
+    <div className="h-full flex flex-col bg-editor">
+      <div className="shrink-0 flex items-center justify-between px-3 py-1.5 border-b border-border bg-base-light">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-text-primary">{selectedPou.name}</span>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-sidebar-hover text-text-secondary">
@@ -154,9 +154,10 @@ export function STEditor() {
         </div>
       </div>
 
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 min-h-0">
         <Editor
-          className="absolute inset-0"
+          height="100%"
+          width="100%"
           language="iec-st"
           theme="panicstudio-dark"
           value={selectedPou.body || defaultProgramTemplate(selectedPou.name)}
