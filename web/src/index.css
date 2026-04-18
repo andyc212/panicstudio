@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-base: #0f1117;
+    --bg-sidebar: #161b22;
+    --bg-editor: #1e1e2e;
+    --bg-ld: #181825;
+    --bg-hover: #21262d;
+    --bg-active: #30363d;
+
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #484f58;
+    --text-accent: #f97316;
+
+    --border-default: #30363d;
+    --border-light: #21262d;
+
+    --success: #22c55e;
+    --warning: #eab308;
+    --error: #ef4444;
+    --info: #0ea5e9;
+
+    --ai-gradient-start: #f97316;
+    --ai-gradient-end: #fb923c;
+    --ai-glow: rgba(249, 115, 22, 0.15);
+  }
+
+  html {
+    font-family: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    overflow: hidden;
+  }
+
+  #root {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--bg-base);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+}
