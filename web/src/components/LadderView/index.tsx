@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useProjectStore } from '@stores';
+import { useProjectStore, useUIStore } from '@stores';
 import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 import { parseSTtoLD, type LDElementType } from '@services/parser/stParser';
 
@@ -22,6 +22,7 @@ const ELEMENT_COLORS: Record<LDElementType, string> = {
 
 export function LadderView() {
   const { currentProject, selectedPouId } = useProjectStore();
+  const { jumpToLine } = useUIStore();
   const selectedPou = currentProject?.poUs.find((p: import('@types').POU) => p.id === selectedPouId);
   const [zoom, setZoom] = useState(1);
 
@@ -109,7 +110,7 @@ export function LadderView() {
 
                   {/* Elements */}
                   {rung.elements.map((el, ei) =>
-                    renderElement(el, ELEMENT_COLORS, ei === 0, ei === rung.elements.length - 1, busY, maxWidth - 15)
+                    renderElement(el, ELEMENT_COLORS, ei === 0, ei === rung.elements.length - 1, busY, maxWidth - 15, jumpToLine)
                   )}
 
                   {/* Right rail */}
@@ -156,8 +157,16 @@ function renderElement(
   isFirst: boolean,
   isLast: boolean,
   busY: number,
-  rightRailX: number
+  rightRailX: number,
+  jumpToLine?: (line: number) => void,
 ) {
+  const handleClick = () => {
+    if (jumpToLine && el.sourceLine) {
+      jumpToLine(el.sourceLine);
+    }
+  };
+  const clickable = !!jumpToLine && !!el.sourceLine;
+  const hoverStyle = clickable ? { cursor: 'pointer' } : undefined;
   const cx = el.x + el.width / 2;
   const cy = el.type === 'verticalLine' || el.type === 'horizontalLine' ? busY : el.y + el.height / 2;
   const leftX = isFirst ? 15 : el.x - 10;
@@ -166,9 +175,9 @@ function renderElement(
   switch (el.type) {
     case 'contactNO':
       return (
-        <g key={el.id}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="none" stroke={colors.contactNO} strokeWidth="1.5" rx="2" />
+          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="none" stroke={colors.contactNO} strokeWidth="1.5" rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
         </g>
@@ -176,9 +185,9 @@ function renderElement(
 
     case 'contactNC':
       return (
-        <g key={el.id}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="none" stroke={colors.contactNC} strokeWidth="1.5" rx="2" />
+          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="none" stroke={colors.contactNC} strokeWidth="1.5" rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <line x1={el.x + 4} y1={el.y + 4} x2={el.x + el.width - 4} y2={el.y + el.height - 4} stroke={colors.contactNC} strokeWidth="1" />
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
@@ -187,9 +196,9 @@ function renderElement(
 
     case 'coil':
       return (
-        <g key={el.id}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coil} strokeWidth="1.5" />
+          <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coil} strokeWidth="1.5" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
         </g>
@@ -197,9 +206,9 @@ function renderElement(
 
     case 'coilSet':
       return (
-        <g key={el.id}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coilSet} strokeWidth="1.5" />
+          <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coilSet} strokeWidth="1.5" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <text x={cx} y={cy + 3} textAnchor="middle" fill={colors.coilSet} style={{ fontSize: '10px', fontWeight: 'bold' }}>S</text>
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
@@ -208,9 +217,9 @@ function renderElement(
 
     case 'coilReset':
       return (
-        <g key={el.id}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coilReset} strokeWidth="1.5" />
+          <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coilReset} strokeWidth="1.5" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <text x={cx} y={cy + 3} textAnchor="middle" fill={colors.coilReset} style={{ fontSize: '10px', fontWeight: 'bold' }}>R</text>
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
@@ -219,9 +228,9 @@ function renderElement(
 
     case 'timerTON':
       return (
-        <g key={el.id}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#1e1e2e" stroke={colors.timerTON} strokeWidth="1.5" rx="2" />
+          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#1e1e2e" stroke={colors.timerTON} strokeWidth="1.5" rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <text x={cx} y={cy - 4} textAnchor="middle" fill={colors.timerTON} style={{ fontSize: '9px', fontWeight: 'bold' }}>TON</text>
           <text x={cx} y={cy + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '8px' }}>{el.params?.PT || ''}</text>
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
@@ -231,9 +240,9 @@ function renderElement(
 
     case 'counterCTU':
       return (
-        <g key={el.id}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#1e1e2e" stroke={colors.counterCTU} strokeWidth="1.5" rx="2" />
+          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#1e1e2e" stroke={colors.counterCTU} strokeWidth="1.5" rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <text x={cx} y={cy - 4} textAnchor="middle" fill={colors.counterCTU} style={{ fontSize: '9px', fontWeight: 'bold' }}>CTU</text>
           <text x={cx} y={cy + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '8px' }}>PV={el.params?.PV || ''}</text>
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />

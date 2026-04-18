@@ -27,6 +27,7 @@ export interface LDElement {
   label?: string;
   address?: string;
   params?: Record<string, string>;
+  sourceLine?: number;
 }
 
 export interface LDRung {
@@ -35,6 +36,7 @@ export interface LDRung {
   elements: LDElement[];
   width: number;
   height: number;
+  sourceLine?: number;
 }
 
 interface Condition {
@@ -44,7 +46,8 @@ interface Condition {
 
 export function parseSTtoLD(stCode: string): LDRung[] {
   const rungs: LDRung[] = [];
-  const lines = stCode.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+  const rawLines = stCode.split('\n');
+  const lines = rawLines.map((l, idx) => ({ text: l.trim(), lineNumber: idx + 1 })).filter((l) => l.text.length > 0);
 
   let currentRung = 0;
   let inVarBlock = false;
@@ -54,9 +57,11 @@ export function parseSTtoLD(stCode: string): LDRung[] {
   let ifOutputs: Array<{ var: string; value: string }> = [];
   let inIfBlock = false;
   let ifLineStart = -1;
+  let ifLineNumber = 1;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i].text;
+    const lineNumber = lines[i].lineNumber;
 
     // Skip VAR blocks
     if (line.toUpperCase().startsWith('VAR') || line.toUpperCase() === 'END_VAR') {
@@ -76,6 +81,7 @@ export function parseSTtoLD(stCode: string): LDRung[] {
       ifOutputs = [];
       inIfBlock = true;
       ifLineStart = i;
+      ifLineNumber = lineNumber;
       continue;
     }
 
@@ -84,10 +90,11 @@ export function parseSTtoLD(stCode: string): LDRung[] {
     if (elsifMatch && inIfBlock) {
       if (ifCondition && ifOutputs.length > 0) {
         currentRung++;
-        rungs.push(...buildRungFromConditions(currentRung, ifCondition, ifOutputs, false));
+        rungs.push(...buildRungFromConditions(currentRung, ifCondition, ifOutputs, false, undefined, ifLineNumber));
       }
       ifCondition = elsifMatch[1].trim();
       ifOutputs = [];
+      ifLineNumber = lineNumber;
       continue;
     }
 
@@ -95,11 +102,12 @@ export function parseSTtoLD(stCode: string): LDRung[] {
     if (/^ELSE$/i.test(line) && inIfBlock) {
       if (ifCondition && ifOutputs.length > 0) {
         currentRung++;
-        rungs.push(...buildRungFromConditions(currentRung, ifCondition, ifOutputs, false));
+        rungs.push(...buildRungFromConditions(currentRung, ifCondition, ifOutputs, false, undefined, ifLineNumber));
       }
       // ELSE = negation of all previous conditions in this IF block
       ifCondition = '__ELSE__';
       ifOutputs = [];
+      ifLineNumber = lineNumber;
       continue;
     }
 
@@ -109,9 +117,9 @@ export function parseSTtoLD(stCode: string): LDRung[] {
         currentRung++;
         const isElse = ifCondition === '__ELSE__';
         const cond = isElse && ifLineStart >= 0
-          ? extractIfCondition(lines, ifLineStart) || 'TRUE'
+          ? extractIfCondition(rawLines, ifLineStart) || 'TRUE'
           : (ifCondition || 'TRUE');
-        rungs.push(...buildRungFromConditions(currentRung, cond, ifOutputs, isElse));
+        rungs.push(...buildRungFromConditions(currentRung, cond, ifOutputs, isElse, undefined, ifLineNumber));
       }
       ifCondition = null;
       ifOutputs = [];
@@ -149,7 +157,7 @@ export function parseSTtoLD(stCode: string): LDRung[] {
           conditions = [...conditions, [{ name: outputVar, negated: false }]];
         }
 
-        rungs.push(...buildRungFromConditions(currentRung, null, [{ var: outputVar, value: expr }], false, conditions));
+        rungs.push(...buildRungFromConditions(currentRung, null, [{ var: outputVar, value: expr }], false, conditions, lineNumber));
         continue;
       }
     }
@@ -162,7 +170,7 @@ export function parseSTtoLD(stCode: string): LDRung[] {
       const inVar = timerMatch[2];
       const ptValue = timerMatch[3].replace(/;/g, '');
 
-      rungs.push(buildTimerRung(currentRung, inVar, timerName, ptValue));
+      rungs.push(buildTimerRung(currentRung, inVar, timerName, ptValue, lineNumber));
       continue;
     }
 
@@ -174,7 +182,7 @@ export function parseSTtoLD(stCode: string): LDRung[] {
       const cuVar = counterMatch[2];
       const pvValue = counterMatch[3];
 
-      rungs.push(buildCounterRung(currentRung, cuVar, counterName, pvValue));
+      rungs.push(buildCounterRung(currentRung, cuVar, counterName, pvValue, lineNumber));
       continue;
     }
 
@@ -192,8 +200,10 @@ export function parseSTtoLD(stCode: string): LDRung[] {
           type: setMatch ? 'coilSet' : 'coilReset',
           x: 35, y: 30, width: 30, height: 30,
           label: varName,
+          sourceLine: lineNumber,
         }],
         width: 140, height: 60,
+        sourceLine: lineNumber,
       });
     }
   }
@@ -203,7 +213,7 @@ export function parseSTtoLD(stCode: string): LDRung[] {
 
 // Extract original IF condition from lines (for ELSE branch negation)
 function extractIfCondition(lines: string[], startIdx: number): string | null {
-  const line = lines[startIdx];
+  const line = lines[startIdx].trim();
   const m = line.match(/^IF\s+(.+?)\s+THEN$/i);
   return m ? m[1].trim() : null;
 }
@@ -213,7 +223,8 @@ function buildRungFromConditions(
   condition: string | null,
   outputs: Array<{ var: string; value: string }>,
   negateCondition: boolean,
-  prebuiltConditions?: Condition[][]
+  prebuiltConditions?: Condition[][],
+  sourceLine?: number,
 ): LDRung[] {
   const rungs: LDRung[] = [];
 
@@ -308,38 +319,41 @@ function buildRungFromConditions(
     rungs.push({
       id: rungId + oi,
       title: `Network ${rungId + oi}`,
-      elements,
+      elements: elements.map((el) => ({ ...el, sourceLine })),
       width: coilX + 90,
       height: hasParallel ? 80 : 60,
+      sourceLine,
     });
   });
 
   return rungs;
 }
 
-function buildTimerRung(rungId: number, inVar: string, timerName: string, ptValue: string): LDRung {
+function buildTimerRung(rungId: number, inVar: string, timerName: string, ptValue: string, sourceLine?: number): LDRung {
   return {
     id: rungId,
     title: `Timer: ${timerName}`,
     elements: [
-      { id: `r${rungId}-in`, type: 'contactNO', x: 35, y: 30, width: 40, height: 30, label: inVar },
-      { id: `r${rungId}-timer`, type: 'timerTON', x: 95, y: 25, width: 50, height: 40, label: timerName, params: { PT: ptValue } },
+      { id: `r${rungId}-in`, type: 'contactNO', x: 35, y: 30, width: 40, height: 30, label: inVar, sourceLine },
+      { id: `r${rungId}-timer`, type: 'timerTON', x: 95, y: 25, width: 50, height: 40, label: timerName, params: { PT: ptValue }, sourceLine },
     ],
     width: 205,
     height: 60,
+    sourceLine,
   };
 }
 
-function buildCounterRung(rungId: number, cuVar: string, counterName: string, pvValue: string): LDRung {
+function buildCounterRung(rungId: number, cuVar: string, counterName: string, pvValue: string, sourceLine?: number): LDRung {
   return {
     id: rungId,
     title: `Counter: ${counterName}`,
     elements: [
-      { id: `r${rungId}-cu`, type: 'contactNO', x: 35, y: 30, width: 40, height: 30, label: cuVar },
-      { id: `r${rungId}-cnt`, type: 'counterCTU', x: 95, y: 25, width: 50, height: 40, label: counterName, params: { PV: pvValue } },
+      { id: `r${rungId}-cu`, type: 'contactNO', x: 35, y: 30, width: 40, height: 30, label: cuVar, sourceLine },
+      { id: `r${rungId}-cnt`, type: 'counterCTU', x: 95, y: 25, width: 50, height: 40, label: counterName, params: { PV: pvValue }, sourceLine },
     ],
     width: 205,
     height: 60,
+    sourceLine,
   };
 }
 
