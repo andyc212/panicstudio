@@ -8,7 +8,7 @@ import type { ParsedFileResult } from '@services/parser/fileParser';
 import {
   MessageSquare, ListOrdered, History, Zap, Loader2,
   Upload, FileText, FileSpreadsheet, X, CheckCircle,
-  Sparkles, Clock,
+  Sparkles, Clock, Copy, RotateCcw, Edit3, FileDown,
 } from 'lucide-react';
 
 export function ChatPanel() {
@@ -76,6 +76,7 @@ function GuidedMode() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCode, setGeneratedCode] = useState('');
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // === File Upload Handlers ===
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,6 +221,26 @@ function GuidedMode() {
 
   const handleInsertToEditor = () => {
     // Already auto-created POU
+  };
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: ignore
+    }
+  };
+
+  const handleRegenerate = () => {
+    setGeneratedCode('');
+    handleGenerate();
+  };
+
+  const handleModifyRequest = () => {
+    setActiveChatTab('guided');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -376,13 +397,56 @@ function GuidedMode() {
       {/* Generated Preview */}
       {generatedCode && (
         <div className="rounded-lg border border-border bg-base overflow-hidden">
-          <div className="flex items-center justify-between px-2 py-1 bg-sidebar-hover border-b border-border">
-            <span className="text-[10px] text-text-secondary">生成结果</span>
-            <button onClick={handleInsertToEditor} className="text-[10px] text-accent hover:text-accent-light transition-colors">
-              已自动创建 POU
-            </button>
+          {/* Action bar */}
+          <div className="flex items-center justify-between px-2 py-1.5 bg-sidebar-hover border-b border-border">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-text-secondary font-medium">生成结果</span>
+              <span className="text-[10px] text-accent ml-1">已自动创建 POU</span>
+            </div>
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={handleRegenerate}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-secondary hover:text-text-primary hover:bg-sidebar-active transition-colors"
+                title="重新生成"
+              >
+                <RotateCcw size={10} />
+                重新生成
+              </button>
+              <button
+                onClick={handleModifyRequest}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-secondary hover:text-text-primary hover:bg-sidebar-active transition-colors"
+                title="修改需求"
+              >
+                <Edit3 size={10} />
+                修改需求
+              </button>
+              <button
+                onClick={handleCopyCode}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-secondary hover:text-text-primary hover:bg-sidebar-active transition-colors"
+                title="复制代码"
+              >
+                {copied ? <CheckCircle size={10} className="text-success" /> : <Copy size={10} />}
+                {copied ? '已复制' : '复制'}
+              </button>
+              <button
+                onClick={() => {
+                  const blob = new Blob([generatedCode], { type: 'text/plain;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${(currentProject?.name || scenario || 'Program').replace(/[^\w\u4e00-\u9fa5]/g, '_')}.st`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-secondary hover:text-text-primary hover:bg-sidebar-active transition-colors"
+                title="导出 .st 文件"
+              >
+                <FileDown size={10} />
+                导出
+              </button>
+            </div>
           </div>
-          <pre className="p-2 text-[10px] text-text-secondary overflow-auto max-h-40 font-mono">{generatedCode.slice(0, 800)}{generatedCode.length > 800 ? '...' : ''}</pre>
+          <pre className="p-2 text-[10px] text-text-secondary overflow-auto max-h-64 font-mono">{generatedCode.slice(0, 800)}{generatedCode.length > 800 ? '...' : ''}</pre>
         </div>
       )}
 

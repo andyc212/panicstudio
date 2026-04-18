@@ -13,7 +13,7 @@ interface ValidationPanelProps {
 
 export function ValidationPanel({ code, codeName, plcModel, declaredIO, requiredSafetyConditions }: ValidationPanelProps) {
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [exportFormat, setExportFormat] = useState<'json' | 'csv'>('json');
   const [showExportMenu, setShowExportMenu] = useState(false);
 
