@@ -101,6 +101,20 @@ export function STEditor() {
   const editorRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
 
+  // Clear decorations on unmount
+  useEffect(() => {
+    return () => {
+      if (editorRef.current && decorationsRef.current.length > 0) {
+        try {
+          editorRef.current.deltaDecorations(decorationsRef.current, []);
+        } catch {
+          // Editor may already be disposed
+        }
+        decorationsRef.current = [];
+      }
+    };
+  }, []);
+
   const handleEditorDidMount = useCallback((editor: any, monaco: any) => {
     editorRef.current = editor;
 

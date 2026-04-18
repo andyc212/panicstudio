@@ -146,7 +146,7 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
 }
 
 function IssueItem({ issue, isExpanded, onToggle }: { issue: ValidationIssue; isExpanded: boolean; onToggle: () => void }) {
-  const { jumpToLine } = useUIStore();
+  const jumpToLine = useUIStore((s) => s.jumpToLine);
   const iconMap = {
     error: <AlertCircle size={13} className="text-error shrink-0 mt-0.5" />,
     warning: <AlertTriangle size={13} className="text-warning shrink-0 mt-0.5" />,
@@ -162,32 +162,37 @@ function IssueItem({ issue, isExpanded, onToggle }: { issue: ValidationIssue; is
 
   return (
     <div className="px-3 py-2 hover:bg-sidebar-hover/50 transition-colors">
-      <button onClick={onToggle} className="w-full flex items-start gap-2 text-left">
-        {iconMap[issue.severity]}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] px-1 rounded bg-sidebar-active text-text-muted">
-              {categoryLabels[issue.category] || issue.category}
-            </span>
-            {issue.line && (
-              <button
-                onClick={(e) => { e.stopPropagation(); jumpToLine(issue.line!); }}
-                className="inline-flex items-center gap-0.5 text-[10px] text-accent hover:text-accent-light hover:underline transition-colors"
-                title={`跳转到第 ${issue.line} 行`}
-              >
-                第 {issue.line} 行
-                <ArrowRight size={9} />
-              </button>
+      <div className="flex items-start gap-2">
+        <button onClick={onToggle} className="flex-1 flex items-start gap-2 text-left" type="button">
+          {iconMap[issue.severity]}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] px-1 rounded bg-sidebar-active text-text-muted">
+                {categoryLabels[issue.category] || issue.category}
+              </span>
+              {issue.line && (
+                <span className="text-[10px] text-text-muted">第 {issue.line} 行</span>
+              )}
+            </div>
+            <p className="text-[11px] text-text-secondary mt-0.5">{issue.message}</p>
+            {isExpanded && issue.suggestion && (
+              <p className="text-[10px] text-text-muted mt-1 pl-2 border-l-2 border-accent/30">
+                建议：{issue.suggestion}
+              </p>
             )}
           </div>
-          <p className="text-[11px] text-text-secondary mt-0.5">{issue.message}</p>
-          {isExpanded && issue.suggestion && (
-            <p className="text-[10px] text-text-muted mt-1 pl-2 border-l-2 border-accent/30">
-              建议：{issue.suggestion}
-            </p>
-          )}
-        </div>
-      </button>
+        </button>
+        {issue.line && (
+          <button
+            onClick={() => jumpToLine(issue.line!)}
+            className="shrink-0 inline-flex items-center gap-0.5 text-[10px] text-accent hover:text-accent-light hover:underline transition-colors mt-0.5"
+            title={`跳转到第 ${issue.line} 行`}
+            type="button"
+          >
+            <ArrowRight size={9} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
