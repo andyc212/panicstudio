@@ -154,9 +154,9 @@ export function STEditor() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 relative overflow-hidden">
         <Editor
-          height="100%"
+          className="absolute inset-0"
           language="iec-st"
           theme="panicstudio-dark"
           value={selectedPou.body || defaultProgramTemplate(selectedPou.name)}

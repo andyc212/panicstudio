@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useProjectStore } from '@stores';
 import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 import { parseSTtoLD, type LDElementType } from '@services/parser/stParser';
@@ -23,6 +23,7 @@ const ELEMENT_COLORS: Record<LDElementType, string> = {
 export function LadderView() {
   const { currentProject, selectedPouId } = useProjectStore();
   const selectedPou = currentProject?.poUs.find((p: import('@types').POU) => p.id === selectedPouId);
+  const [zoom, setZoom] = useState(1);
 
   const rungs = useMemo(() => {
     if (!selectedPou?.body) return [];
@@ -37,18 +38,24 @@ export function LadderView() {
   const totalHeight = Math.max(100, rungs.length * 70 + 20);
 
   return (
-    <div className="shrink-0 border-t border-border bg-ld flex flex-col" style={{ height: '35%', minHeight: '160px' }}>
+    <div className="flex-1 border-t border-border bg-ld flex flex-col min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-base-light">
         <span className="text-xs font-medium text-text-secondary">
           Ladder Diagram {rungs.length > 0 && `(${rungs.length} networks)`}
         </span>
         <div className="flex items-center gap-1">
-          <button className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors">
+          <button
+            className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors"
+            onClick={() => setZoom(z => Math.max(z / 1.2, 0.5))}
+          >
             <ZoomOut size={12} />
           </button>
-          <span className="text-[10px] text-text-muted w-8 text-center">100%</span>
-          <button className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors">
+          <span className="text-[10px] text-text-muted w-8 text-center">{Math.round(zoom * 100)}%</span>
+          <button
+            className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors"
+            onClick={() => setZoom(z => Math.min(z * 1.2, 3))}
+          >
             <ZoomIn size={12} />
           </button>
           <div className="w-px h-3 bg-border mx-1" />
@@ -62,8 +69,8 @@ export function LadderView() {
       <div className="flex-1 flex items-start justify-center overflow-auto p-2">
         {rungs.length > 0 ? (
           <svg
-            width={maxWidth}
-            height={totalHeight}
+            width={maxWidth * zoom}
+            height={totalHeight * zoom}
             viewBox={`0 0 ${maxWidth} ${totalHeight}`}
             className="text-text-primary"
           >
