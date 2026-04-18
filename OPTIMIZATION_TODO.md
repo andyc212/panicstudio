@@ -124,7 +124,7 @@
 **Solution**: Wrap parser/validator in Web Worker.  
 
 ### P3.2 Simulation mode for LD
-**Status**: ⏳ Pending  
+**Status**: ✅ Done  
 **Files**: `LadderView/index.tsx`  
 **Problem**: Users can't test logic without hardware.  
 **Solution**: Toggle input states → highlight active LD paths.  
@@ -153,3 +153,4 @@
 - **P2.1**: LD → ST linkage — click LD element to jump to source line, parser stores `sourceLine` on each element
 - **P2.2**: Multi-dimensional validation scoring (syntax / IO / safety / complexity / structure) with progress bars
 - **P2.3**: a11y audit fixes — aria-labels on all icon-only buttons, SVG `role="button"` + `tabIndex` + keyboard support, `type="button"` everywhere
+- **P3.2**: LD simulation mode — toggle input contact states on click, green highlight for active contacts, `aria-pressed` support
