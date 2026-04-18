@@ -1,5 +1,5 @@
 // IEC 61131-3 ST Parser → LD Model
-// 支持更多语法模式：IF-THEN、定时器、计数器、并联分支
+// 支持：直接赋值、IF-THEN-ELSE、定时器、计数器、并联分支
 
 export type LDElementType =
   | 'leftRail'
@@ -37,12 +37,23 @@ export interface LDRung {
   height: number;
 }
 
+interface Condition {
+  name: string;
+  negated: boolean;
+}
+
 export function parseSTtoLD(stCode: string): LDRung[] {
   const rungs: LDRung[] = [];
   const lines = stCode.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
 
   let currentRung = 0;
   let inVarBlock = false;
+
+  // IF-THEN tracking
+  let ifCondition: string | null = null;
+  let ifOutputs: Array<{ var: string; value: string }> = [];
+  let inIfBlock = false;
+  let ifLineStart = -1;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -54,187 +65,125 @@ export function parseSTtoLD(stCode: string): LDRung[] {
     }
     if (inVarBlock) continue;
 
-    // Skip comments
+    // Skip comments and structural keywords
     if (line.startsWith('//') || line.startsWith('(*')) continue;
-
-    // Skip PROGRAM/END_PROGRAM etc.
     if (/^(PROGRAM|END_PROGRAM|FUNCTION|END_FUNCTION|FUNCTION_BLOCK|END_FUNCTION_BLOCK)/i.test(line)) continue;
 
-    currentRung++;
-    const elements: LDElement[] = [];
-    let x = 20;
-    const y = 30;
+    // === IF detection ===
+    const ifMatch = line.match(/^IF\s+(.+?)\s+THEN$/i);
+    if (ifMatch) {
+      ifCondition = ifMatch[1].trim();
+      ifOutputs = [];
+      inIfBlock = true;
+      ifLineStart = i;
+      continue;
+    }
 
-    // Pattern 1: Direct assignment: Output := Input1 AND Input2;
-    if (line.includes(':=') && !line.toUpperCase().includes('IF ') && !line.toUpperCase().includes('THEN')) {
+    // === ELSIF: flush previous, start new ===
+    const elsifMatch = line.match(/^ELSIF\s+(.+?)\s+THEN$/i);
+    if (elsifMatch && inIfBlock) {
+      if (ifCondition && ifOutputs.length > 0) {
+        currentRung++;
+        rungs.push(...buildRungFromConditions(currentRung, ifCondition, ifOutputs, false));
+      }
+      ifCondition = elsifMatch[1].trim();
+      ifOutputs = [];
+      continue;
+    }
+
+    // === ELSE: flush previous, negate for else branch ===
+    if (/^ELSE$/i.test(line) && inIfBlock) {
+      if (ifCondition && ifOutputs.length > 0) {
+        currentRung++;
+        rungs.push(...buildRungFromConditions(currentRung, ifCondition, ifOutputs, false));
+      }
+      // ELSE = negation of all previous conditions in this IF block
+      ifCondition = '__ELSE__';
+      ifOutputs = [];
+      continue;
+    }
+
+    // === END_IF: flush remaining ===
+    if (/^END_IF;?$/i.test(line) && inIfBlock) {
+      if (ifOutputs.length > 0) {
+        currentRung++;
+        const isElse = ifCondition === '__ELSE__';
+        const cond = isElse && ifLineStart >= 0
+          ? extractIfCondition(lines, ifLineStart) || 'TRUE'
+          : (ifCondition || 'TRUE');
+        rungs.push(...buildRungFromConditions(currentRung, cond, ifOutputs, isElse));
+      }
+      ifCondition = null;
+      ifOutputs = [];
+      inIfBlock = false;
+      ifLineStart = -1;
+      continue;
+    }
+
+    // === Inside IF block: collect assignments ===
+    if (inIfBlock && line.includes(':=')) {
+      const [left, right] = line.split(':=').map((s) => s.trim());
+      const varName = left.replace(/;/g, '');
+      const value = right.replace(/;/g, '');
+      ifOutputs.push({ var: varName, value });
+      continue;
+    }
+
+    // === Direct assignment (outside IF) ===
+    if (line.includes(':=') && !line.toUpperCase().includes('IF ')) {
+      currentRung++;
       const [left, right] = line.split(':=').map((s) => s.trim());
       const outputVar = left.replace(/;/g, '');
       const expr = right.replace(/;/g, '');
 
-      // Parse conditions (handle AND/OR)
-      const conditions = parseBooleanExpression(expr);
-      let hasParallel = false;
+      // Self-latch pattern: Y0 := X0 OR Y0  =>  X0 (NO) -- Y0 (coil), with Y0 contact in parallel
+      const isSelfLatch = new RegExp(`\\b${outputVar}\\b`, 'i').test(expr);
+      const conditions = parseBooleanExpression(expr, outputVar);
 
-      conditions.forEach((group, gi) => {
-        let groupX = x;
-        const groupY = hasParallel ? y + 35 : y;
-
-        group.forEach((cond, ci) => {
-          elements.push({
-            id: `r${currentRung}-g${gi}-c${ci}`,
-            type: cond.negated ? 'contactNC' : 'contactNO',
-            x: groupX,
-            y: groupY,
-            width: 40,
-            height: 30,
-            label: cond.name,
-          });
-          groupX += 60;
-        });
-
-        // Horizontal line from last contact
-        if (gi === conditions.length - 1) {
-          x = groupX;
-        }
-
-        if (gi > 0) hasParallel = true;
-      });
-
-      // Output coil
-      elements.push({
-        id: `r${currentRung}-coil`,
-        type: 'coil',
-        x,
-        y: y + (hasParallel ? 15 : 0),
-        width: 30,
-        height: 30,
-        label: outputVar,
-      });
-
-      // Add vertical line for parallel branches
-      if (hasParallel) {
-        elements.push({
-          id: `r${currentRung}-branch-v`,
-          type: 'verticalLine',
-          x: x - 10,
-          y: y,
-          width: 2,
-          height: 35,
-          label: '',
-        });
-      }
-
-      rungs.push({
-        id: currentRung,
-        title: `Network ${currentRung}`,
-        elements,
-        width: x + 80,
-        height: hasParallel ? 80 : 60,
-      });
+      rungs.push(...buildRungFromConditions(currentRung, null, [{ var: outputVar, value: expr }], false, conditions));
       continue;
     }
 
-    // Pattern 2: TON/TOF timer instantiation
+    // === Timer instantiation ===
     const timerMatch = line.match(/(\w+)\s*\(\s*IN\s*:=\s*(\w+)\s*,\s*PT\s*:=\s*(.+?)\s*\)/i);
     if (timerMatch) {
+      currentRung++;
       const timerName = timerMatch[1];
       const inVar = timerMatch[2];
       const ptValue = timerMatch[3].replace(/;/g, '');
 
-      elements.push({
-        id: `r${currentRung}-in`,
-        type: 'contactNO',
-        x,
-        y,
-        width: 40,
-        height: 30,
-        label: inVar,
-      });
-      x += 60;
-
-      elements.push({
-        id: `r${currentRung}-timer`,
-        type: 'timerTON',
-        x,
-        y: y - 5,
-        width: 50,
-        height: 40,
-        label: timerName,
-        params: { PT: ptValue },
-      });
-      x += 70;
-
-      rungs.push({
-        id: currentRung,
-        title: `Timer: ${timerName}`,
-        elements,
-        width: x + 40,
-        height: 60,
-      });
+      rungs.push(buildTimerRung(currentRung, inVar, timerName, ptValue));
       continue;
     }
 
-    // Pattern 3: CTU/CTD counter
+    // === Counter ===
     const counterMatch = line.match(/(\w+)\s*\(\s*CU\s*:=\s*(\w+)\s*,\s*PV\s*:=\s*(\d+)/i);
     if (counterMatch) {
+      currentRung++;
       const counterName = counterMatch[1];
       const cuVar = counterMatch[2];
       const pvValue = counterMatch[3];
 
-      elements.push({
-        id: `r${currentRung}-cu`,
-        type: 'contactNO',
-        x,
-        y,
-        width: 40,
-        height: 30,
-        label: cuVar,
-      });
-      x += 60;
-
-      elements.push({
-        id: `r${currentRung}-counter`,
-        type: 'counterCTU',
-        x,
-        y: y - 5,
-        width: 50,
-        height: 40,
-        label: counterName,
-        params: { PV: pvValue },
-      });
-      x += 70;
-
-      rungs.push({
-        id: currentRung,
-        title: `Counter: ${counterName}`,
-        elements,
-        width: x + 40,
-        height: 60,
-      });
+      rungs.push(buildCounterRung(currentRung, cuVar, counterName, pvValue));
       continue;
     }
 
-    // Pattern 4: Set/Reset: Var := TRUE / Var := FALSE
-    const setMatch = line.match(/(\w+)\s*:=\s*TRUE/i);
-    const resetMatch = line.match(/(\w+)\s*:=\s*FALSE/i);
-    if (setMatch || resetMatch) {
+    // === Set/Reset single line ===
+    const setMatch = line.match(/^(\w+)\s*:=\s*TRUE/i);
+    const resetMatch = line.match(/^(\w+)\s*:=\s*FALSE/i);
+    if ((setMatch || resetMatch) && !inIfBlock) {
+      currentRung++;
       const varName = (setMatch || resetMatch)![1];
-      elements.push({
-        id: `r${currentRung}-coil`,
-        type: setMatch ? 'coilSet' : 'coilReset',
-        x,
-        y,
-        width: 30,
-        height: 30,
-        label: varName,
-      });
-
       rungs.push({
         id: currentRung,
         title: `${setMatch ? 'Set' : 'Reset'}: ${varName}`,
-        elements,
-        width: x + 60,
-        height: 60,
+        elements: [{
+          id: `r${currentRung}-coil`,
+          type: setMatch ? 'coilSet' : 'coilReset',
+          x: 20, y: 30, width: 30, height: 30,
+          label: varName,
+        }],
+        width: 100, height: 60,
       });
     }
   }
@@ -242,16 +191,141 @@ export function parseSTtoLD(stCode: string): LDRung[] {
   return rungs;
 }
 
-// Parse boolean expression like "X0 AND NOT X1 OR X2"
-// Returns array of parallel groups, each group is array of conditions
-interface Condition {
-  name: string;
-  negated: boolean;
+// Extract original IF condition from lines (for ELSE branch negation)
+function extractIfCondition(lines: string[], startIdx: number): string | null {
+  const line = lines[startIdx];
+  const m = line.match(/^IF\s+(.+?)\s+THEN$/i);
+  return m ? m[1].trim() : null;
 }
 
-function parseBooleanExpression(expr: string): Condition[][] {
-  // Simple parser: split by OR first, then by AND
-  const orGroups = expr.split(/\s+OR\s+/i);
+function buildRungFromConditions(
+  rungId: number,
+  condition: string | null,
+  outputs: Array<{ var: string; value: string }>,
+  negateCondition: boolean,
+  prebuiltConditions?: Condition[][]
+): LDRung[] {
+  const rungs: LDRung[] = [];
+
+  let conditions: Condition[][];
+  if (prebuiltConditions) {
+    conditions = prebuiltConditions;
+  } else if (condition && condition !== '__ELSE__') {
+    conditions = parseBooleanExpression(condition);
+    if (negateCondition) {
+      // Negate all contacts in the condition
+      conditions = conditions.map((group) =>
+        group.map((c) => ({ ...c, negated: !c.negated }))
+      );
+    }
+  } else {
+    conditions = [];
+  }
+
+  outputs.forEach((output, oi) => {
+    const elements: LDElement[] = [];
+    let x = 35; // Start after left rail
+    const y = 30;
+    let hasParallel = false;
+
+    // Build contact chain from conditions
+    if (conditions.length > 0) {
+      conditions.forEach((group, gi) => {
+        let groupX = x;
+        const groupY = hasParallel ? y + 35 : y;
+
+        group.forEach((cond, ci) => {
+          elements.push({
+            id: `r${rungId}-${oi}-g${gi}-c${ci}`,
+            type: cond.negated ? 'contactNC' : 'contactNO',
+            x: groupX, y: groupY, width: 40, height: 30,
+            label: cond.name,
+          });
+          groupX += 60;
+        });
+
+        if (gi === conditions.length - 1) x = groupX;
+        if (gi > 0) hasParallel = true;
+      });
+
+      // Parallel branch vertical lines
+      if (hasParallel) {
+        const firstGroupEnd = 35 + conditions[0].length * 60;
+        elements.push({
+          id: `r${rungId}-${oi}-v1`,
+          type: 'verticalLine',
+          x: firstGroupEnd, y, width: 2, height: 35, label: '',
+        });
+      }
+    }
+
+    // Determine coil type
+    let coilType: LDElementType = 'coil';
+    const val = output.value.toUpperCase();
+    if (val === 'TRUE') coilType = 'coilSet';
+    else if (val === 'FALSE') coilType = 'coilReset';
+
+    elements.push({
+      id: `r${rungId}-${oi}-coil`,
+      type: coilType,
+      x,
+      y: y + (hasParallel ? 15 : 0),
+      width: 30, height: 30,
+      label: output.var,
+    });
+
+    rungs.push({
+      id: rungId + oi,
+      title: `Network ${rungId + oi}`,
+      elements,
+      width: x + 80,
+      height: hasParallel ? 80 : 60,
+    });
+  });
+
+  return rungs;
+}
+
+function buildTimerRung(rungId: number, inVar: string, timerName: string, ptValue: string): LDRung {
+  return {
+    id: rungId,
+    title: `Timer: ${timerName}`,
+    elements: [
+      { id: `r${rungId}-in`, type: 'contactNO', x: 35, y: 30, width: 40, height: 30, label: inVar },
+      { id: `r${rungId}-timer`, type: 'timerTON', x: 95, y: 25, width: 50, height: 40, label: timerName, params: { PT: ptValue } },
+    ],
+    width: 180,
+    height: 60,
+  };
+}
+
+function buildCounterRung(rungId: number, cuVar: string, counterName: string, pvValue: string): LDRung {
+  return {
+    id: rungId,
+    title: `Counter: ${counterName}`,
+    elements: [
+      { id: `r${rungId}-cu`, type: 'contactNO', x: 35, y: 30, width: 40, height: 30, label: cuVar },
+      { id: `r${rungId}-cnt`, type: 'counterCTU', x: 95, y: 25, width: 50, height: 40, label: counterName, params: { PV: pvValue } },
+    ],
+    width: 180,
+    height: 60,
+  };
+}
+
+// Parse boolean expression like "X0 AND NOT X1 OR X2"
+// Returns array of parallel groups, each group is array of AND conditions
+function parseBooleanExpression(expr: string, excludeVar?: string): Condition[][] {
+  // Remove the excluded variable (for self-latch patterns)
+  let cleanExpr = expr;
+  if (excludeVar) {
+    cleanExpr = cleanExpr.replace(new RegExp(`\\b${excludeVar}\\b`, 'gi'), '').trim();
+    cleanExpr = cleanExpr.replace(/\s+AND\s+AND\s+/gi, ' AND ').replace(/\s+OR\s+OR\s+/gi, ' OR ');
+    cleanExpr = cleanExpr.replace(/^AND\s+|\s+AND$/gi, '').replace(/^OR\s+|\s+OR$/gi, '').trim();
+  }
+
+  if (!cleanExpr) return [[{ name: 'TRUE', negated: false }]];
+
+  const orGroups = cleanExpr.split(/\s+OR\s+/i);
 
   return orGroups.map((group) => {
     const andParts = group.split(/\s+AND\s+/i);
@@ -260,6 +334,6 @@ function parseBooleanExpression(expr: string): Condition[][] {
       const negated = trimmed.toUpperCase().startsWith('NOT ');
       const name = negated ? trimmed.slice(4).trim() : trimmed;
       return { name, negated };
-    });
-  });
+    }).filter((c) => c.name && c.name !== 'TRUE');
+  }).filter((g) => g.length > 0);
 }

@@ -69,6 +69,7 @@ export function LadderView() {
           >
             {rungs.map((rung, ri) => {
               const rowY = ri * 70 + 10;
+              const busY = rowY + 30;
 
               return (
                 <g key={rung.id}>
@@ -87,8 +88,21 @@ export function LadderView() {
                     strokeWidth="2"
                   />
 
+                  {/* Horizontal bus line */}
+                  <line
+                    x1="15"
+                    y1={busY}
+                    x2={maxWidth - 15}
+                    y2={busY}
+                    stroke={ELEMENT_COLORS.horizontalLine}
+                    strokeWidth="1"
+                    opacity="0.3"
+                  />
+
                   {/* Elements */}
-                  {rung.elements.map((el) => renderElement(el, ELEMENT_COLORS))}
+                  {rung.elements.map((el, ei) =>
+                    renderElement(el, ELEMENT_COLORS, ei === 0, ei === rung.elements.length - 1, busY, maxWidth - 15)
+                  )}
 
                   {/* Right rail */}
                   <line
@@ -127,17 +141,26 @@ export function LadderView() {
   );
 }
 
-function renderElement(el: import('@services/parser/stParser').LDElement, colors: Record<string, string>) {
+function renderElement(
+  el: import('@services/parser/stParser').LDElement,
+  colors: Record<string, string>,
+  isFirst: boolean,
+  isLast: boolean,
+  busY: number,
+  rightRailX: number
+) {
   const cx = el.x + el.width / 2;
-  const cy = el.y + el.height / 2;
+  const cy = busY;
+  const leftX = isFirst ? 15 : el.x - 10;
+  const rightX = isLast ? rightRailX : el.x + el.width + 10;
 
   switch (el.type) {
     case 'contactNO':
       return (
         <g key={el.id}>
-          <line x1={el.x - 10} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="none" stroke={colors.contactNO} strokeWidth="1.5" rx="2" />
-          <line x1={el.x + el.width} y1={cy} x2={el.x + el.width + 10} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '7px' }}>{el.label}</text>
         </g>
       );
@@ -145,10 +168,10 @@ function renderElement(el: import('@services/parser/stParser').LDElement, colors
     case 'contactNC':
       return (
         <g key={el.id}>
-          <line x1={el.x - 10} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="none" stroke={colors.contactNC} strokeWidth="1.5" rx="2" />
           <line x1={el.x + 4} y1={el.y + 4} x2={el.x + el.width - 4} y2={el.y + el.height - 4} stroke={colors.contactNC} strokeWidth="1" />
-          <line x1={el.x + el.width} y1={cy} x2={el.x + el.width + 10} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '7px' }}>{el.label}</text>
         </g>
       );
@@ -156,9 +179,9 @@ function renderElement(el: import('@services/parser/stParser').LDElement, colors
     case 'coil':
       return (
         <g key={el.id}>
-          <line x1={el.x - 10} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coil} strokeWidth="1.5" />
-          <line x1={el.x + el.width} y1={cy} x2={el.x + el.width + 10} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '7px' }}>{el.label}</text>
         </g>
       );
@@ -166,10 +189,10 @@ function renderElement(el: import('@services/parser/stParser').LDElement, colors
     case 'coilSet':
       return (
         <g key={el.id}>
-          <line x1={el.x - 10} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coilSet} strokeWidth="1.5" />
           <text x={cx} y={cy + 3} textAnchor="middle" fill={colors.coilSet} style={{ fontSize: '10px', fontWeight: 'bold' }}>S</text>
-          <line x1={el.x + el.width} y1={cy} x2={el.x + el.width + 10} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '7px' }}>{el.label}</text>
         </g>
       );
@@ -177,10 +200,10 @@ function renderElement(el: import('@services/parser/stParser').LDElement, colors
     case 'coilReset':
       return (
         <g key={el.id}>
-          <line x1={el.x - 10} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coilReset} strokeWidth="1.5" />
           <text x={cx} y={cy + 3} textAnchor="middle" fill={colors.coilReset} style={{ fontSize: '10px', fontWeight: 'bold' }}>R</text>
-          <line x1={el.x + el.width} y1={cy} x2={el.x + el.width + 10} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '7px' }}>{el.label}</text>
         </g>
       );
@@ -188,11 +211,11 @@ function renderElement(el: import('@services/parser/stParser').LDElement, colors
     case 'timerTON':
       return (
         <g key={el.id}>
-          <line x1={el.x - 10} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#1e1e2e" stroke={colors.timerTON} strokeWidth="1.5" rx="2" />
           <text x={cx} y={cy - 2} textAnchor="middle" fill={colors.timerTON} style={{ fontSize: '8px', fontWeight: 'bold' }}>TON</text>
           <text x={cx} y={cy + 10} textAnchor="middle" fill="#8b949e" style={{ fontSize: '6px' }}>{el.params?.PT || ''}</text>
-          <line x1={el.x + el.width} y1={cy} x2={el.x + el.width + 10} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '7px' }}>{el.label}</text>
         </g>
       );
@@ -200,11 +223,11 @@ function renderElement(el: import('@services/parser/stParser').LDElement, colors
     case 'counterCTU':
       return (
         <g key={el.id}>
-          <line x1={el.x - 10} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#1e1e2e" stroke={colors.counterCTU} strokeWidth="1.5" rx="2" />
           <text x={cx} y={cy - 2} textAnchor="middle" fill={colors.counterCTU} style={{ fontSize: '8px', fontWeight: 'bold' }}>CTU</text>
           <text x={cx} y={cy + 10} textAnchor="middle" fill="#8b949e" style={{ fontSize: '6px' }}>PV={el.params?.PV || ''}</text>
-          <line x1={el.x + el.width} y1={cy} x2={el.x + el.width + 10} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
+          <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '7px' }}>{el.label}</text>
         </g>
       );
