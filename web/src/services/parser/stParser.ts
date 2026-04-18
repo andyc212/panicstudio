@@ -131,17 +131,27 @@ export function parseSTtoLD(stCode: string): LDRung[] {
 
     // === Direct assignment (outside IF) ===
     if (line.includes(':=') && !line.toUpperCase().includes('IF ')) {
-      currentRung++;
-      const [left, right] = line.split(':=').map((s) => s.trim());
-      const outputVar = left.replace(/;/g, '');
-      const expr = right.replace(/;/g, '');
+      // Skip timer/counter patterns that also contain ':='
+      if (/\w+\s*\(\s*(IN|CU)\s*:=\s*.+\)/i.test(line)) {
+        // Let timer/counter patterns handle below
+      } else {
+        currentRung++;
+        const [left, right] = line.split(':=').map((s) => s.trim());
+        const outputVar = left.replace(/;/g, '');
+        const expr = right.replace(/;/g, '');
 
-      // Self-latch pattern: Y0 := X0 OR Y0  =>  X0 (NO) -- Y0 (coil), with Y0 contact in parallel
-      const isSelfLatch = new RegExp(`\\b${outputVar}\\b`, 'i').test(expr);
-      const conditions = parseBooleanExpression(expr, outputVar);
+        // Self-latch pattern: Y0 := X0 OR Y0
+        const isSelfLatch = new RegExp(`\\b${escapeRegex(outputVar)}\\b`, 'i').test(expr);
+        let conditions = parseBooleanExpression(expr, isSelfLatch ? undefined : outputVar);
 
-      rungs.push(...buildRungFromConditions(currentRung, null, [{ var: outputVar, value: expr }], false, conditions));
-      continue;
+        if (isSelfLatch && conditions.length > 0) {
+          // Add self-contact as parallel branch
+          conditions = [...conditions, [{ name: outputVar, negated: false }]];
+        }
+
+        rungs.push(...buildRungFromConditions(currentRung, null, [{ var: outputVar, value: expr }], false, conditions));
+        continue;
+      }
     }
 
     // === Timer instantiation ===
@@ -314,16 +324,20 @@ function buildCounterRung(rungId: number, cuVar: string, counterName: string, pv
 
 // Parse boolean expression like "X0 AND NOT X1 OR X2"
 // Returns array of parallel groups, each group is array of AND conditions
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function parseBooleanExpression(expr: string, excludeVar?: string): Condition[][] {
   // Remove the excluded variable (for self-latch patterns)
   let cleanExpr = expr;
   if (excludeVar) {
-    cleanExpr = cleanExpr.replace(new RegExp(`\\b${excludeVar}\\b`, 'gi'), '').trim();
+    cleanExpr = cleanExpr.replace(new RegExp(`\\b${escapeRegex(excludeVar)}\\b`, 'gi'), '').trim();
     cleanExpr = cleanExpr.replace(/\s+AND\s+AND\s+/gi, ' AND ').replace(/\s+OR\s+OR\s+/gi, ' OR ');
     cleanExpr = cleanExpr.replace(/^AND\s+|\s+AND$/gi, '').replace(/^OR\s+|\s+OR$/gi, '').trim();
   }
 
-  if (!cleanExpr) return [[{ name: 'TRUE', negated: false }]];
+  if (!cleanExpr) return [];
 
   const orGroups = cleanExpr.split(/\s+OR\s+/i);
 
