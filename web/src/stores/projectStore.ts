@@ -70,7 +70,24 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   addPou: (pou) =>
     set((state) => {
-      if (!state.currentProject) return state;
+      if (!state.currentProject) {
+        // 无项目时自动创建默认项目
+        const newProject: PLCProject = {
+          id: crypto.randomUUID(),
+          name: '未命名项目',
+          plcModel: 'FP0R',
+          description: '',
+          poUs: [pou],
+          globalVars: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        return {
+          currentProject: newProject,
+          selectedPouId: pou.id,
+          hasUnsavedChanges: true,
+        };
+      }
       return {
         currentProject: {
           ...state.currentProject,

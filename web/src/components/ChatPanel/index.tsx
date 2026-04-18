@@ -167,7 +167,7 @@ function GuidedMode() {
         .join('\n\n');
 
       const formData = {
-        plcModel: currentProject?.plcModel || 'FP-XH',
+        plcModel: currentProject?.plcModel || 'FP0R',
         scenario: scenario || '自定义控制',
         ioList: ioList.filter((io) => io.address && io.name),
         processFlow: processSteps.filter((s) => s.description).map((s, i) => ({ id: String(i), order: i, description: s.description })),
@@ -187,7 +187,7 @@ function GuidedMode() {
       }
 
       // Auto-create POU
-      if (code && currentProject) {
+      if (code) {
         const newPou = {
           id: crypto.randomUUID(),
           name: scenario || 'Generated_Program',
