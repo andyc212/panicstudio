@@ -190,10 +190,10 @@ export function parseSTtoLD(stCode: string): LDRung[] {
         elements: [{
           id: `r${currentRung}-coil`,
           type: setMatch ? 'coilSet' : 'coilReset',
-          x: 20, y: 30, width: 30, height: 30,
+          x: 35, y: 30, width: 30, height: 30,
           label: varName,
         }],
-        width: 100, height: 60,
+        width: 140, height: 60,
       });
     }
   }
@@ -251,7 +251,7 @@ function buildRungFromConditions(
             x: groupX, y: groupY, width: 40, height: 30,
             label: cond.name,
           });
-          groupX += 60;
+          groupX += 100;
         });
 
         if (gi === conditions.length - 1) x = groupX;
@@ -260,7 +260,7 @@ function buildRungFromConditions(
 
       // Parallel branch vertical lines
       if (hasParallel) {
-        const firstGroupEnd = 35 + conditions[0].length * 60;
+        const firstGroupEnd = 35 + conditions[0].length * 100;
         elements.push({
           id: `r${rungId}-${oi}-v1`,
           type: 'verticalLine',
@@ -288,7 +288,7 @@ function buildRungFromConditions(
       id: rungId + oi,
       title: `Network ${rungId + oi}`,
       elements,
-      width: x + 80,
+      width: x + 100,
       height: hasParallel ? 80 : 60,
     });
   });
@@ -302,9 +302,9 @@ function buildTimerRung(rungId: number, inVar: string, timerName: string, ptValu
     title: `Timer: ${timerName}`,
     elements: [
       { id: `r${rungId}-in`, type: 'contactNO', x: 35, y: 30, width: 40, height: 30, label: inVar },
-      { id: `r${rungId}-timer`, type: 'timerTON', x: 95, y: 25, width: 50, height: 40, label: timerName, params: { PT: ptValue } },
+      { id: `r${rungId}-timer`, type: 'timerTON', x: 135, y: 25, width: 50, height: 40, label: timerName, params: { PT: ptValue } },
     ],
-    width: 180,
+    width: 280,
     height: 60,
   };
 }
@@ -315,9 +315,9 @@ function buildCounterRung(rungId: number, cuVar: string, counterName: string, pv
     title: `Counter: ${counterName}`,
     elements: [
       { id: `r${rungId}-cu`, type: 'contactNO', x: 35, y: 30, width: 40, height: 30, label: cuVar },
-      { id: `r${rungId}-cnt`, type: 'counterCTU', x: 95, y: 25, width: 50, height: 40, label: counterName, params: { PV: pvValue } },
+      { id: `r${rungId}-cnt`, type: 'counterCTU', x: 135, y: 25, width: 50, height: 40, label: counterName, params: { PV: pvValue } },
     ],
-    width: 180,
+    width: 280,
     height: 60,
   };
 }
