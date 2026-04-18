@@ -7,6 +7,7 @@ import type { ParsedFileResult } from '@services/parser/fileParser';
 import {
   MessageSquare, ListOrdered, History, Zap, Loader2,
   Upload, FileText, FileSpreadsheet, X, CheckCircle,
+  Sparkles, Clock, ArrowLeft,
 } from 'lucide-react';
 
 export function ChatPanel() {
@@ -398,23 +399,56 @@ function GuidedMode() {
   );
 }
 
-function ChatMode() {
+function ComingSoon({
+  icon,
+  title,
+  description,
+  hint,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  hint?: string;
+}) {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 flex items-center justify-center text-text-muted text-sm">
-        <div className="text-center">
-          <p>💬 自由对话模式</p>
-          <p className="text-xs mt-1">功能开发中，请先使用引导生成</p>
+      <div className="flex-1 flex items-center justify-center px-6">
+        <div className="text-center max-w-[240px]">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-sidebar-active border border-border mb-4">
+            {icon}
+          </div>
+          <h3 className="text-sm font-medium text-text-primary mb-1">{title}</h3>
+          <p className="text-xs text-text-secondary leading-relaxed mb-3">{description}</p>
+          {hint && (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/5 border border-accent/10">
+              <Sparkles size={10} className="text-accent" />
+              <span className="text-[10px] text-accent font-medium">{hint}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+function ChatMode() {
+  return (
+    <ComingSoon
+      icon={<MessageSquare size={20} className="text-text-muted" />}
+      title="自由对话模式"
+      description="通过自然语言直接描述需求，AI 将实时理解并生成对应的 PLC 程序。无需填写表单，像与工程师对话一样简单。"
+      hint="预计近期上线"
+    />
+  );
+}
+
 function HistoryMode() {
   return (
-    <div className="text-center text-text-muted text-sm mt-8">
-      <p>📜 暂无历史记录</p>
-    </div>
+    <ComingSoon
+      icon={<Clock size={20} className="text-text-muted" />}
+      title="生成历史"
+      description="查看和管理所有 AI 生成记录，支持版本对比、回滚到任意历史版本，以及批量导出。"
+      hint="预计近期上线"
+    />
   );
 }
