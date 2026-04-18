@@ -8,7 +8,9 @@ interface UIState {
   leftPanelWidth: number;
   rightPanelWidth: number;
   // 编辑器分栏比例
-  editorSplitRatio: number; // 0.5 ~ 0.8
+  editorSplitRatio: number; // 0.2 ~ 0.85
+  // 右侧面板分栏比例
+  rightPanelSplitRatio: number; // 0.3 ~ 0.8
   // 主题
   theme: 'dark' | 'light';
   // 当前激活的 Tab
@@ -21,6 +23,7 @@ interface UIState {
   setLeftPanelWidth: (width: number) => void;
   setRightPanelWidth: (width: number) => void;
   setEditorSplitRatio: (ratio: number) => void;
+  setRightPanelSplitRatio: (ratio: number) => void;
   setTheme: (theme: 'dark' | 'light') => void;
   setActiveChatTab: (tab: 'guided' | 'chat' | 'history') => void;
   completeOnboarding: () => void;
@@ -32,6 +35,7 @@ export const useUIStore = create<UIState>((set) => ({
   leftPanelWidth: 300,
   rightPanelWidth: 260,
   editorSplitRatio: 0.6,
+  rightPanelSplitRatio: 0.67,
   theme: 'dark',
   activeChatTab: 'guided',
   onboardingCompleted: false,
@@ -41,6 +45,7 @@ export const useUIStore = create<UIState>((set) => ({
   setLeftPanelWidth: (width) => set({ leftPanelWidth: width }),
   setRightPanelWidth: (width) => set({ rightPanelWidth: width }),
   setEditorSplitRatio: (ratio) => set({ editorSplitRatio: ratio }),
+  setRightPanelSplitRatio: (ratio) => set({ rightPanelSplitRatio: ratio }),
   setTheme: (theme) => set({ theme }),
   setActiveChatTab: (tab) => set({ activeChatTab: tab }),
   completeOnboarding: () => set({ onboardingCompleted: true }),

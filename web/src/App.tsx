@@ -7,14 +7,14 @@ import { VarTable } from '@components/VarTable';
 import { useUIStore } from '@stores';
 
 function App() {
-  const { editorSplitRatio, setEditorSplitRatio } = useUIStore();
+  const { editorSplitRatio, setEditorSplitRatio, rightPanelSplitRatio, setRightPanelSplitRatio } = useUIStore();
 
   return (
     <AppLayout
       leftPanel={<ChatPanel />}
       centerPanel={
         <div className="flex flex-col h-full">
-          <div style={{ height: `${editorSplitRatio * 100}%`, minHeight: '160px' }} className="min-h-[160px]">
+          <div className="flex flex-col" style={{ height: `${editorSplitRatio * 100}%`, minHeight: '160px' }}>
             <STEditor />
           </div>
           {/* Resizer */}
@@ -47,10 +47,33 @@ function App() {
       }
       rightPanel={
         <div className="flex flex-col h-full">
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-[120px]" style={{ height: `${rightPanelSplitRatio * 100}%` }}>
             <ProjectTree />
           </div>
-          <div className="h-1/3 min-h-[120px] border-t border-border">
+          {/* Right panel resizer */}
+          <div
+            className="h-1 bg-border hover:bg-accent cursor-row-resize transition-colors shrink-0"
+            onMouseDown={(e) => {
+              const startY = e.clientY;
+              const startRatio = rightPanelSplitRatio;
+              const containerHeight = (e.target as HTMLElement).parentElement!.getBoundingClientRect().height;
+
+              const handleMouseMove = (moveEvent: MouseEvent) => {
+                const deltaY = moveEvent.clientY - startY;
+                const newRatio = Math.max(0.2, Math.min(0.8, startRatio + deltaY / containerHeight));
+                setRightPanelSplitRatio(newRatio);
+              };
+
+              const handleMouseUp = () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+              };
+
+              document.addEventListener('mousemove', handleMouseMove);
+              document.addEventListener('mouseup', handleMouseUp);
+            }}
+          />
+          <div className="flex-1 min-h-[120px]">
             <VarTable />
           </div>
         </div>
