@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useUIStore, useProjectStore, useAuthStore } from '@stores';
 import { streamAIGeneration } from '@services/api/ai';
@@ -57,6 +57,7 @@ export function ChatPanel() {
 function GuidedMode() {
   const { user, isAuthenticated } = useAuthStore();
   const { currentProject, addPou } = useProjectStore();
+  const { setActiveChatTab } = useUIStore();
 
   // Form state
   const [scenario, setScenario] = useState('');
@@ -219,29 +220,44 @@ function GuidedMode() {
     }
   }, [isAuthenticated, scenario, ioList, processSteps, safetyConditions, notes, currentProject, uploadedFiles]);
 
-  const handleInsertToEditor = () => {
-    // Already auto-created POU
-  };
-
-  const handleCopyCode = async () => {
+  const handleCopyCode = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(generatedCode);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback: ignore
+      setError('复制失败，请手动复制代码');
     }
-  };
+  }, [generatedCode]);
 
-  const handleRegenerate = () => {
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
+  const handleRegenerate = useCallback(() => {
     setGeneratedCode('');
     handleGenerate();
-  };
+  }, [handleGenerate]);
 
-  const handleModifyRequest = () => {
+  const handleModifyRequest = useCallback(() => {
     setActiveChatTab('guided');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [setActiveChatTab]);
+
+  const handleExportCode = useCallback(() => {
+    if (!generatedCode.trim()) return;
+    const blob = new Blob([generatedCode], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const base = (currentProject?.name || scenario || 'Program')
+      .replace(/[^\w\u4e00-\u9fa5]/g, '_')
+      .slice(0, 100);
+    a.download = `${base}.st`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [generatedCode, currentProject?.name, scenario]);
 
   return (
     <div className="space-y-3">
@@ -429,15 +445,7 @@ function GuidedMode() {
                 {copied ? '已复制' : '复制'}
               </button>
               <button
-                onClick={() => {
-                  const blob = new Blob([generatedCode], { type: 'text/plain;charset=utf-8' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `${(currentProject?.name || scenario || 'Program').replace(/[^\w\u4e00-\u9fa5]/g, '_')}.st`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
+                onClick={handleExportCode}
                 className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-secondary hover:text-text-primary hover:bg-sidebar-active transition-colors"
                 title="导出 .st 文件"
               >
