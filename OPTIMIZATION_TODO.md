@@ -83,7 +83,7 @@
 ## P2 — Medium Priority
 
 ### P2.1 LD ↔ ST bidirectional linkage
-**Status**: ⏳ Pending  
+**Status**: ✅ Done  
 **Files**: `LadderView/index.tsx`, `STEditor/index.tsx`, `stParser.ts`  
 **Problem**: One-way ST→LD only.  
 **Solution**:
@@ -93,7 +93,7 @@
 **Tests**: Parser line-mapping tests.  
 
 ### P2.2 Multi-dimensional validation radar chart
-**Status**: ⏳ Pending  
+**Status**: ✅ Done  
 **Files**: `ValidationPanel/index.tsx`, `stValidator.ts`  
 **Problem**: Single 0-100 score is reductive.  
 **Solution**:
@@ -103,7 +103,7 @@
 **Tests**: Score calculation tests.  
 
 ### P2.3 Full a11y audit & fixes
-**Status**: ⏳ Pending  
+**Status**: ✅ Done  
 **Files**: All components  
 **Problem**: No aria-labels, poor contrast, no keyboard nav.  
 **Solution**:
@@ -150,3 +150,6 @@
 - **P1.2**: 4-step generation progress indicator (analyze → plan vars → write logic → verify safety)
 - **P1.3**: ProjectTree grouping by POU type, context menu (rename/duplicate/delete), line count + validation badges
 - **P1.4**: Global command palette (Ctrl+K) with `@`/#/`>` prefix filtering for POU/var/command search
+- **P2.1**: LD → ST linkage — click LD element to jump to source line, parser stores `sourceLine` on each element
+- **P2.2**: Multi-dimensional validation scoring (syntax / IO / safety / complexity / structure) with progress bars
+- **P2.3**: a11y audit fixes — aria-labels on all icon-only buttons, SVG `role="button"` + `tabIndex` + keyboard support, `type="button"` everywhere
