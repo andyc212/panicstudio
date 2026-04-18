@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { useUIStore, useProjectStore, useAuthStore } from '@stores';
 import { streamAIGeneration } from '@services/api/ai';
 import { ValidationPanel } from '@components/ValidationPanel';
@@ -7,7 +8,7 @@ import type { ParsedFileResult } from '@services/parser/fileParser';
 import {
   MessageSquare, ListOrdered, History, Zap, Loader2,
   Upload, FileText, FileSpreadsheet, X, CheckCircle,
-  Sparkles, Clock, ArrowLeft,
+  Sparkles, Clock,
 } from 'lucide-react';
 
 export function ChatPanel() {
@@ -405,7 +406,7 @@ function ComingSoon({
   description,
   hint,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   description: string;
   hint?: string;
@@ -414,14 +415,14 @@ function ComingSoon({
     <div className="flex flex-col h-full">
       <div className="flex-1 flex items-center justify-center px-6">
         <div className="text-center max-w-[240px]">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-sidebar-active border border-border mb-4">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-sidebar-active border border-border mb-4" aria-hidden="true">
             {icon}
           </div>
           <h3 className="text-sm font-medium text-text-primary mb-1">{title}</h3>
           <p className="text-xs text-text-secondary leading-relaxed mb-3">{description}</p>
           {hint && (
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/5 border border-accent/10">
-              <Sparkles size={10} className="text-accent" />
+              <Sparkles size={10} className="text-accent" aria-hidden="true" />
               <span className="text-[10px] text-accent font-medium">{hint}</span>
             </div>
           )}
