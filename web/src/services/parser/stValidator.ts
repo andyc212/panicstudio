@@ -142,18 +142,36 @@ export function validateSTCode(code: string, context?: ValidationContext): Valid
   }
 
   // === 3. I/O 地址检查 ===
+  const usedAddresses = new Set<string>();
+  // 提取代码中使用的地址（X0, Y1, DT100 等）
+  // 要求：XYRDT 开头，后面至少跟一个数字，避免匹配 THEN、TRUE、RUNFLAG 等关键字
+  const addressRegex = /\b([XYRDT]\d+\w*)\b/gi;
+  let match;
+  while ((match = addressRegex.exec(code)) !== null) {
+    usedAddresses.add(match[1].toUpperCase());
+  }
+
+  // 收集声明的地址：优先用 context.declaredIO，否则从代码 VAR 块提取
+  let declaredAddresses = new Set<string>();
   if (context?.declaredIO && context.declaredIO.length > 0) {
-    const declaredAddresses = new Set(context.declaredIO.map((io) => io.address.toUpperCase()));
-    const usedAddresses = new Set<string>();
-
-    // 提取代码中使用的地址（X0, Y1, DT100 等）
-    // 要求：XYRDT 开头，后面至少跟一个数字，避免匹配 THEN、TRUE、RUNFLAG 等关键字
-    const addressRegex = /\b([XYRDT]\d+\w*)\b/gi;
-    let match;
-    while ((match = addressRegex.exec(code)) !== null) {
-      usedAddresses.add(match[1].toUpperCase());
+    context.declaredIO.forEach((io) => declaredAddresses.add(io.address.toUpperCase()));
+  }
+  // Fallback：从 VAR 块提取声明的地址（如 "X0 : BOOL"）
+  const varBlockRegex = /\bVAR\b([\s\S]*?)\bEND_VAR\b/gi;
+  let varMatch;
+  while ((varMatch = varBlockRegex.exec(code)) !== null) {
+    const varLines = varMatch[1].split('\n');
+    for (const line of varLines) {
+      const trimmed = line.trim();
+      // 匹配 "X0 : BOOL" 或 "X0: BOOL" 格式
+      const varDeclMatch = trimmed.match(/\b([XYRDT]\d+\w*)\s*:/);
+      if (varDeclMatch) {
+        declaredAddresses.add(varDeclMatch[1].toUpperCase());
+      }
     }
+  }
 
+  if (declaredAddresses.size > 0) {
     usedAddresses.forEach((addr) => {
       if (!declaredAddresses.has(addr)) {
         issues.push({
@@ -161,13 +179,13 @@ export function validateSTCode(code: string, context?: ValidationContext): Valid
           severity: 'warning',
           category: 'io',
           message: `使用了未声明的地址 ${addr}`,
-          suggestion: `在 I/O 清单中添加 ${addr} 的定义`,
+          suggestion: `在 I/O 清单或 VAR 块中添加 ${addr} 的定义`,
         });
       }
     });
 
-    // 检查声明的 I/O 是否被使用
-    context.declaredIO.forEach((io) => {
+    // 检查声明的 I/O 是否被使用（仅当 context 有 declaredIO 时）
+    context?.declaredIO?.forEach((io) => {
       if (!usedAddresses.has(io.address.toUpperCase())) {
         issues.push({
           id: `io-unused-${io.address}`,

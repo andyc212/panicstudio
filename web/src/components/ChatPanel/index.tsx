@@ -48,7 +48,7 @@ export function ChatPanel() {
 
 function GuidedMode() {
   const { user, isAuthenticated } = useAuthStore();
-  const { currentProject, setCurrentProject, selectPou } = useProjectStore();
+  const { currentProject, addPou } = useProjectStore();
 
   // Form state
   const [scenario, setScenario] = useState('');
@@ -201,11 +201,7 @@ function GuidedMode() {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        setCurrentProject({
-          ...currentProject,
-          poUs: [...currentProject.poUs, newPou],
-        });
-        selectPou(newPou.id);
+        addPou(newPou);
       }
     } catch (err: any) {
       setError(err.message || '生成失败');
@@ -386,7 +382,7 @@ function GuidedMode() {
       {generatedCode && (
         <ValidationPanel
           code={generatedCode}
-          declaredIO={ioList.filter((io) => io.address && io.name).map((io) => ({ address: io.address, name: io.name, type: io.type as 'INPUT' | 'OUTPUT' }))}
+          declaredIO={ioList.filter((io) => io.address).map((io) => ({ address: io.address, name: io.name || io.address, type: io.type as 'INPUT' | 'OUTPUT' }))}
           requiredSafetyConditions={safetyConditions.filter((s) => s.enabled).map((s) => s.description)}
         />
       )}
