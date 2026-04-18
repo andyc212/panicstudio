@@ -48,7 +48,7 @@ export function ChatPanel() {
 
 function GuidedMode() {
   const { user, isAuthenticated } = useAuthStore();
-  const { currentProject, setCurrentProject } = useProjectStore();
+  const { currentProject, setCurrentProject, selectPou } = useProjectStore();
 
   // Form state
   const [scenario, setScenario] = useState('');
@@ -205,6 +205,7 @@ function GuidedMode() {
           ...currentProject,
           poUs: [...currentProject.poUs, newPou],
         });
+        selectPou(newPou.id);
       }
     } catch (err: any) {
       setError(err.message || '生成失败');
