@@ -78,6 +78,7 @@ function GuidedMode() {
   const [generatedCode, setGeneratedCode] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [generationStep, setGenerationStep] = useState(0);
 
   // === File Upload Handlers ===
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,10 +188,12 @@ function GuidedMode() {
       };
 
       let code = '';
+      setGenerationStep(1);
       for await (const chunk of streamAIGeneration(formData as any)) {
         if (chunk.type === 'chunk') {
           code += chunk.content;
           setGeneratedCode(code);
+          setGenerationStep(inferGenerationStep(code));
         } else if (chunk.type === 'error') {
           setError(chunk.error || '生成失败');
         }
@@ -217,6 +220,7 @@ function GuidedMode() {
       setError(err.message || '生成失败');
     } finally {
       setIsGenerating(false);
+      setGenerationStep(0);
     }
   }, [isAuthenticated, scenario, ioList, processSteps, safetyConditions, notes, currentProject, uploadedFiles]);
 
@@ -458,6 +462,11 @@ function GuidedMode() {
         </div>
       )}
 
+      {/* Generation Progress */}
+      {isGenerating && generationStep > 0 && (
+        <GenerationProgress step={generationStep} />
+      )}
+
       {/* Code Validation */}
       {generatedCode && (
         <ValidationPanel
@@ -468,6 +477,63 @@ function GuidedMode() {
           requiredSafetyConditions={safetyConditions.filter((s) => s.enabled).map((s) => s.description)}
         />
       )}
+    </div>
+  );
+}
+
+function inferGenerationStep(code: string): number {
+  if (code.includes('END_PROGRAM')) return 4;
+  if (code.includes('END_VAR')) return 3;
+  if (code.includes('VAR')) return 2;
+  return 1;
+}
+
+function GenerationProgress({ step }: { step: number }) {
+  const steps = [
+    { label: '分析需求', desc: '理解场景和 I/O 配置' },
+    { label: '规划变量', desc: '生成 VAR_INPUT / VAR_OUTPUT' },
+    { label: '编写逻辑', desc: '构建程序主体和条件判断' },
+    { label: '验证安全', desc: '检查安全条件和语法完整性' },
+  ];
+
+  return (
+    <div className="rounded-lg border border-border bg-base overflow-hidden">
+      <div className="px-3 py-2 bg-sidebar-hover border-b border-border">
+        <div className="flex items-center gap-2">
+          <Loader2 size={12} className="text-accent animate-spin" />
+          <span className="text-[10px] text-text-secondary font-medium">AI 生成中…</span>
+        </div>
+      </div>
+      <div className="px-3 py-2 space-y-1.5">
+        {steps.map((s, i) => {
+          const stepNum = i + 1;
+          const isActive = step === stepNum;
+          const isDone = step > stepNum;
+          return (
+            <div key={s.label} className="flex items-center gap-2">
+              <div
+                className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 ${
+                  isDone
+                    ? 'bg-success/10 text-success'
+                    : isActive
+                    ? 'bg-accent/10 text-accent'
+                    : 'bg-sidebar-active text-text-muted'
+                }`}
+              >
+                {isDone ? <CheckCircle size={8} /> : stepNum}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className={`text-[10px] font-medium ${isActive ? 'text-text-primary' : 'text-text-secondary'}`}>
+                  {s.label}
+                </div>
+                {isActive && (
+                  <div className="text-[9px] text-text-muted">{s.desc}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
