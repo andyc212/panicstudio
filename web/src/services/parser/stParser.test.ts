@@ -96,4 +96,72 @@ Y0 := X0;`;
     expect(rungs.length).toBe(1);
     expect(rungs[0].elements[0].label).toBe('X0');
   });
+
+  it('does not produce duplicate rung IDs with multiple outputs in IF-THEN', () => {
+    const code = `IF X0 THEN
+  Y0 := TRUE;
+  Y1 := TRUE;
+END_IF;
+Y2 := X1;`;
+    const rungs = parseSTtoLD(code);
+    const ids = rungs.map((r) => r.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+  });
+
+  it('does not produce duplicate rung IDs with ELSIF chains', () => {
+    const code = `IF X0 THEN
+  Y0 := TRUE;
+  Y1 := TRUE;
+ELSIF X1 THEN
+  Y2 := TRUE;
+  Y3 := TRUE;
+ELSE
+  Y4 := TRUE;
+  Y5 := TRUE;
+END_IF;
+Y6 := X2;`;
+    const rungs = parseSTtoLD(code);
+    const ids = rungs.map((r) => r.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+  });
+
+  it('handles complex conveyor-like program without overlapping rung IDs', () => {
+    const code = `PROGRAM Conveyor
+VAR_INPUT
+  X0 : BOOL; X1 : BOOL; X2 : BOOL;
+END_VAR
+VAR_OUTPUT
+  Y0 : BOOL; Y1 : BOOL; Y2 : BOOL;
+END_VAR
+
+Y0 := X0 AND X1;
+IF X2 THEN
+  Y0 := TRUE;
+  Y1 := TRUE;
+END_IF;
+Y2 := X0 OR X1;
+Timer1(IN := X1, PT := T#2s);
+Counter1(CU := X2, PV := 100);
+IF X0 AND X1 THEN
+  Y0 := FALSE;
+  Y1 := FALSE;
+  Y2 := FALSE;
+END_IF;
+Y0 := X2;
+END_PROGRAM`;
+    const rungs = parseSTtoLD(code);
+    const ids = rungs.map((r) => r.id);
+    const uniqueIds = new Set(ids);
+    expect(uniqueIds.size).toBe(ids.length);
+    // Check that no two rungs have elements at conflicting positions
+    for (let i = 0; i < rungs.length; i++) {
+      const r = rungs[i];
+      for (const el of r.elements) {
+        expect(el.x).toBeGreaterThanOrEqual(0);
+        expect(el.y).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
 });

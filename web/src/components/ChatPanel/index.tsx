@@ -63,6 +63,7 @@ function GuidedMode() {
   const [scenario, setScenario] = useState('');
   const [ioList, setIoList] = useState([{ address: 'X0', type: 'INPUT' as const, dataType: 'BOOL' as const, name: '', description: '' }]);
   const [processSteps, setProcessSteps] = useState([{ description: '' }]);
+  const [stepsExpanded, setStepsExpanded] = useState(false);
   const [safetyConditions, setSafetyConditions] = useState([
     { id: '1', description: '急停复位后才能重启', enabled: true },
     { id: '2', description: '电机过载保护', enabled: true },
@@ -364,14 +365,23 @@ function GuidedMode() {
       <div className="rounded-lg border border-border bg-base p-3">
         <div className="text-xs font-medium text-accent mb-2">Step 3: 动作流程</div>
         <div className="space-y-1">
-          {processSteps.map((step, i) => (
+          {processSteps.slice(0, stepsExpanded ? processSteps.length : 10).map((step, i) => (
             <div key={i} className="flex items-center gap-1">
               <span className="text-[10px] text-text-muted w-4">{i + 1}.</span>
               <input value={step.description} onChange={(e) => updateStep(i, e.target.value)} placeholder="动作描述" className="flex-1 px-2 py-1 rounded bg-sidebar-hover border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent" />
             </div>
           ))}
         </div>
-        <button onClick={addStep} className="mt-1.5 text-[10px] text-accent hover:text-accent-light transition-colors">+ 添加步骤</button>
+        {processSteps.length > 10 && (
+          <button
+            onClick={() => setStepsExpanded(!stepsExpanded)}
+            className="mt-1 text-[10px] text-text-muted hover:text-text-primary transition-colors"
+            type="button"
+          >
+            {stepsExpanded ? '收起' : `展开剩余 ${processSteps.length - 10} 项`}
+          </button>
+        )}
+        <button onClick={addStep} className="mt-1.5 text-[10px] text-accent hover:text-accent-light transition-colors" type="button">+ 添加步骤</button>
       </div>
 
       {/* Step 4: Safety */}

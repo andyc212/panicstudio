@@ -90,7 +90,9 @@ export function parseSTtoLD(stCode: string): LDRung[] {
     if (elsifMatch && inIfBlock) {
       if (ifCondition && ifOutputs.length > 0) {
         currentRung++;
-        rungs.push(...buildRungFromConditions(currentRung, ifCondition, ifOutputs, false, undefined, ifLineNumber));
+        const newRungs = buildRungFromConditions(currentRung, ifCondition, ifOutputs, false, undefined, ifLineNumber);
+        rungs.push(...newRungs);
+        currentRung += newRungs.length - 1;
       }
       ifCondition = elsifMatch[1].trim();
       ifOutputs = [];
@@ -102,7 +104,9 @@ export function parseSTtoLD(stCode: string): LDRung[] {
     if (/^ELSE$/i.test(line) && inIfBlock) {
       if (ifCondition && ifOutputs.length > 0) {
         currentRung++;
-        rungs.push(...buildRungFromConditions(currentRung, ifCondition, ifOutputs, false, undefined, ifLineNumber));
+        const newRungs = buildRungFromConditions(currentRung, ifCondition, ifOutputs, false, undefined, ifLineNumber);
+        rungs.push(...newRungs);
+        currentRung += newRungs.length - 1;
       }
       // ELSE = negation of all previous conditions in this IF block
       ifCondition = '__ELSE__';
@@ -119,7 +123,9 @@ export function parseSTtoLD(stCode: string): LDRung[] {
         const cond = isElse && ifLineStart >= 0
           ? extractIfCondition(rawLines, ifLineStart) || 'TRUE'
           : (ifCondition || 'TRUE');
-        rungs.push(...buildRungFromConditions(currentRung, cond, ifOutputs, isElse, undefined, ifLineNumber));
+        const newRungs = buildRungFromConditions(currentRung, cond, ifOutputs, isElse, undefined, ifLineNumber);
+        rungs.push(...newRungs);
+        currentRung += newRungs.length - 1;
       }
       ifCondition = null;
       ifOutputs = [];
@@ -157,7 +163,9 @@ export function parseSTtoLD(stCode: string): LDRung[] {
           conditions = [...conditions, [{ name: outputVar, negated: false }]];
         }
 
-        rungs.push(...buildRungFromConditions(currentRung, null, [{ var: outputVar, value: expr }], false, conditions, lineNumber));
+        const newRungs = buildRungFromConditions(currentRung, null, [{ var: outputVar, value: expr }], false, conditions, lineNumber);
+        rungs.push(...newRungs);
+        currentRung += newRungs.length;
         continue;
       }
     }
