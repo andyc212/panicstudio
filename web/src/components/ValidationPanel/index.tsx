@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
+import { useUIStore } from '@stores';
 import { validateSTCode, getScoreColor, getScoreLabel, downloadValidationLog } from '@services/parser/stValidator';
 import type { ValidationIssue, ValidationResult } from '@services/parser/stValidator';
-import { AlertCircle, AlertTriangle, Info, CheckCircle, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Info, CheckCircle, ChevronDown, ChevronUp, Download, ArrowRight } from 'lucide-react';
 
 interface ValidationPanelProps {
   code: string;
@@ -145,6 +146,7 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
 }
 
 function IssueItem({ issue, isExpanded, onToggle }: { issue: ValidationIssue; isExpanded: boolean; onToggle: () => void }) {
+  const { jumpToLine } = useUIStore();
   const iconMap = {
     error: <AlertCircle size={13} className="text-error shrink-0 mt-0.5" />,
     warning: <AlertTriangle size={13} className="text-warning shrink-0 mt-0.5" />,
@@ -168,7 +170,14 @@ function IssueItem({ issue, isExpanded, onToggle }: { issue: ValidationIssue; is
               {categoryLabels[issue.category] || issue.category}
             </span>
             {issue.line && (
-              <span className="text-[10px] text-text-muted">第 {issue.line} 行</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); jumpToLine(issue.line!); }}
+                className="inline-flex items-center gap-0.5 text-[10px] text-accent hover:text-accent-light hover:underline transition-colors"
+                title={`跳转到第 ${issue.line} 行`}
+              >
+                第 {issue.line} 行
+                <ArrowRight size={9} />
+              </button>
             )}
           </div>
           <p className="text-[11px] text-text-secondary mt-0.5">{issue.message}</p>

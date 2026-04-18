@@ -1,6 +1,6 @@
 import { useCallback, useRef, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
-import { useProjectStore } from '@stores';
+import { useProjectStore, useUIStore } from '@stores';
 import { FileCode } from 'lucide-react';
 
 // IEC 61131-3 ST 语法高亮定义
@@ -96,8 +96,10 @@ const editorTheme = {
 
 export function STEditor() {
   const { currentProject, selectedPouId, updatePouBody } = useProjectStore();
+  const { editorJumpTarget } = useUIStore();
   const selectedPou = currentProject?.poUs.find((p: import('@types').POU) => p.id === selectedPouId);
   const editorRef = useRef<any>(null);
+  const decorationsRef = useRef<string[]>([]);
 
   const handleEditorDidMount = useCallback((editor: any, monaco: any) => {
     editorRef.current = editor;
@@ -127,6 +129,43 @@ export function STEditor() {
       updatePouBody(selectedPouId, value);
     }
   }, [selectedPouId, updatePouBody]);
+
+  // Jump to line when editorJumpTarget changes
+  useEffect(() => {
+    if (!editorJumpTarget || !editorRef.current) return;
+    const editor = editorRef.current;
+    const line = editorJumpTarget.line;
+
+    // Reveal line in center
+    editor.revealLineInCenter(line);
+
+    // Set cursor
+    editor.setPosition({ lineNumber: line, column: 1 });
+    editor.focus();
+
+    // Add highlight decoration
+    const newDecorations = editor.deltaDecorations(decorationsRef.current, [
+      {
+        range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 },
+        options: {
+          isWholeLine: true,
+          className: 'editor-highlight-line',
+          overviewRuler: { color: '#f97316', position: 2 },
+        },
+      },
+    ]);
+    decorationsRef.current = newDecorations;
+
+    // Remove highlight after 2s
+    const timer = setTimeout(() => {
+      if (editorRef.current) {
+        editorRef.current.deltaDecorations(decorationsRef.current, []);
+        decorationsRef.current = [];
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [editorJumpTarget]);
 
   if (!selectedPou) {
     return (

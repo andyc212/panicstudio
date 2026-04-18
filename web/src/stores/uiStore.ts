@@ -17,6 +17,8 @@ interface UIState {
   activeChatTab: 'guided' | 'chat' | 'history';
   // Onboarding 状态
   onboardingCompleted: boolean;
+  // 编辑器跳转目标
+  editorJumpTarget: { line: number; timestamp: number } | null;
   // 操作
   toggleLeftPanel: () => void;
   toggleRightPanel: () => void;
@@ -27,6 +29,7 @@ interface UIState {
   setTheme: (theme: 'dark' | 'light') => void;
   setActiveChatTab: (tab: 'guided' | 'chat' | 'history') => void;
   completeOnboarding: () => void;
+  jumpToLine: (line: number) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -39,6 +42,7 @@ export const useUIStore = create<UIState>((set) => ({
   theme: 'dark',
   activeChatTab: 'guided',
   onboardingCompleted: false,
+  editorJumpTarget: null,
 
   toggleLeftPanel: () => set((state) => ({ leftPanelCollapsed: !state.leftPanelCollapsed })),
   toggleRightPanel: () => set((state) => ({ rightPanelCollapsed: !state.rightPanelCollapsed })),
@@ -49,4 +53,5 @@ export const useUIStore = create<UIState>((set) => ({
   setTheme: (theme) => set({ theme }),
   setActiveChatTab: (tab) => set({ activeChatTab: tab }),
   completeOnboarding: () => set({ onboardingCompleted: true }),
+  jumpToLine: (line) => set({ editorJumpTarget: { line, timestamp: Date.now() } }),
 }));

@@ -67,3 +67,10 @@
     background: var(--text-muted);
   }
 }
+
+@layer components {
+  .editor-highlight-line {
+    background-color: rgba(249, 115, 22, 0.15) !important;
+    border-left: 2px solid var(--text-accent);
+  }
+}
