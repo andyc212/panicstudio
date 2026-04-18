@@ -40,7 +40,7 @@ function App() {
               document.addEventListener('mouseup', handleMouseUp);
             }}
           />
-          <div className="flex-1 min-h-[160px]">
+          <div className="flex-1 min-h-[160px] flex flex-col">
             <LadderView />
           </div>
         </div>
