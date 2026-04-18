@@ -8,6 +8,7 @@ const router = Router();
 // POST /api/ai/generate
 // Stream SSE response
 router.post('/generate', authMiddleware, async (req: AuthRequest, res) => {
+  console.log('[AI] Generate request received');
   const userId = req.user!.id;
 
   try {

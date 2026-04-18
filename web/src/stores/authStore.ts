@@ -42,7 +42,7 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'panicstudio-auth',
-      partialize: (state) => ({ token: state.token }),
+      partialize: (state) => ({ token: state.token, isAuthenticated: state.isAuthenticated, user: state.user }),
     }
   )
 );
