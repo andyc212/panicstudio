@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useProjectStore, useUIStore } from '@stores';
-import { ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import { ZoomIn, ZoomOut, RefreshCw, Play, Square } from 'lucide-react';
 import { parseSTtoLD, type LDElementType } from '@services/parser/stParser';
 
 const ELEMENT_COLORS: Record<LDElementType, string> = {
@@ -25,6 +25,8 @@ export function LadderView() {
   const { jumpToLine } = useUIStore();
   const selectedPou = currentProject?.poUs.find((p: import('@types').POU) => p.id === selectedPouId);
   const [zoom, setZoom] = useState(1);
+  const [simMode, setSimMode] = useState(false);
+  const [simStates, setSimStates] = useState<Record<string, boolean>>({});
 
   const rungs = useMemo(() => {
     if (!selectedPou?.body) return [];
@@ -66,6 +68,16 @@ export function LadderView() {
           <div className="w-px h-3 bg-border mx-1" />
           <button className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors" aria-label="重置视图" type="button">
             <RefreshCw size={12} />
+          </button>
+          <div className="w-px h-3 bg-border mx-1" />
+          <button
+            onClick={() => { setSimMode(!simMode); setSimStates({}); }}
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${simMode ? 'bg-success/10 text-success' : 'text-text-muted hover:text-text-primary hover:bg-sidebar-hover'}`}
+            type="button"
+            aria-label={simMode ? '停止仿真' : '启动仿真'}
+          >
+            {simMode ? <Square size={10} /> : <Play size={10} />}
+            {simMode ? '停止' : '仿真'}
           </button>
         </div>
       </div>
@@ -114,7 +126,7 @@ export function LadderView() {
 
                   {/* Elements */}
                   {rung.elements.map((el, ei) =>
-                    renderElement(el, ELEMENT_COLORS, ei === 0, ei === rung.elements.length - 1, busY, maxWidth - 15, jumpToLine)
+                    renderElement(el, ELEMENT_COLORS, ei === 0, ei === rung.elements.length - 1, busY, maxWidth - 15, jumpToLine, simMode, simStates, setSimStates)
                   )}
 
                   {/* Right rail */}
@@ -163,28 +175,49 @@ function renderElement(
   busY: number,
   rightRailX: number,
   jumpToLine?: (line: number) => void,
+  simMode?: boolean,
+  simStates?: Record<string, boolean>,
+  setSimStates?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
 ) {
+  const isSimContact = simMode && (el.type === 'contactNO' || el.type === 'contactNC');
+  const simActive = isSimContact && el.label ? (simStates?.[el.label] ?? false) : false;
+
   const handleClick = () => {
+    if (isSimContact && el.label && setSimStates) {
+      setSimStates((prev) => ({ ...prev, [el.label]: !prev[el.label] }));
+      return;
+    }
     if (jumpToLine && el.sourceLine) {
       jumpToLine(el.sourceLine);
     }
   };
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.key === 'Enter' || e.key === ' ') && jumpToLine && el.sourceLine) {
+    if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      jumpToLine(el.sourceLine);
+      if (isSimContact && el.label && setSimStates) {
+        setSimStates((prev) => ({ ...prev, [el.label]: !prev[el.label] }));
+        return;
+      }
+      if (jumpToLine && el.sourceLine) {
+        jumpToLine(el.sourceLine);
+      }
     }
   };
-  const clickable = !!jumpToLine && !!el.sourceLine;
+  const clickable = (!!jumpToLine && !!el.sourceLine) || isSimContact;
   const hoverStyle = clickable ? { cursor: 'pointer' } : undefined;
   const a11yProps = clickable
     ? {
         tabIndex: 0 as const,
         role: 'button' as const,
-        'aria-label': `${el.label || '元素'} — 第 ${el.sourceLine} 行`,
+        'aria-label': isSimContact
+          ? `${el.label} — ${simActive ? '已激活' : '未激活'}（点击切换）`
+          : `${el.label || '元素'} — 第 ${el.sourceLine} 行`,
         onKeyDown: handleKeyDown,
       }
     : {};
+
+  // Simulation active color
+  const activeStroke = simActive ? '#22c55e' : undefined;
   const cx = el.x + el.width / 2;
   const cy = el.type === 'verticalLine' || el.type === 'horizontalLine' ? busY : el.y + el.height / 2;
   const leftX = isFirst ? 15 : el.x - 10;
@@ -195,9 +228,9 @@ function renderElement(
       return (
         <g key={el.id} onClick={handleClick} style={hoverStyle} {...a11yProps}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="none" stroke={colors.contactNO} strokeWidth="1.5" rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
+          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill={simActive ? 'rgba(34,197,94,0.1)' : 'none'} stroke={activeStroke || colors.contactNO} strokeWidth={simActive ? '2' : '1.5'} rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
+          <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill={simActive ? '#22c55e' : '#8b949e'} style={{ fontSize: '9px' }}>{el.label}</text>
         </g>
       );
 
@@ -205,10 +238,10 @@ function renderElement(
       return (
         <g key={el.id} onClick={handleClick} style={hoverStyle} {...a11yProps}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="none" stroke={colors.contactNC} strokeWidth="1.5" rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
-          <line x1={el.x + 4} y1={el.y + 4} x2={el.x + el.width - 4} y2={el.y + el.height - 4} stroke={colors.contactNC} strokeWidth="1" />
+          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill={simActive ? 'rgba(34,197,94,0.1)' : 'none'} stroke={activeStroke || colors.contactNC} strokeWidth={simActive ? '2' : '1.5'} rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
+          <line x1={el.x + 4} y1={el.y + 4} x2={el.x + el.width - 4} y2={el.y + el.height - 4} stroke={activeStroke || colors.contactNC} strokeWidth="1" />
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
+          <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill={simActive ? '#22c55e' : '#8b949e'} style={{ fontSize: '9px' }}>{el.label}</text>
         </g>
       );
 
