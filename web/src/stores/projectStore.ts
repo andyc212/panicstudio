@@ -18,6 +18,8 @@ interface ProjectState {
   updatePouVars: (pouId: string, vars: { inputs?: IOEntry[]; outputs?: IOEntry[]; locals?: IOEntry[] }) => void;
   addPou: (pou: POU) => void;
   removePou: (pouId: string) => void;
+  renamePou: (pouId: string, name: string) => void;
+  duplicatePou: (pouId: string) => void;
   markAsSaved: () => void;
   markAsUnsaved: () => void;
 }
@@ -105,6 +107,42 @@ export const useProjectStore = create<ProjectState>((set) => ({
       return {
         currentProject: { ...state.currentProject, poUs: newPoUs },
         selectedPouId: state.selectedPouId === pouId ? newPoUs[0]?.id ?? null : state.selectedPouId,
+        hasUnsavedChanges: true,
+      };
+    }),
+
+  renamePou: (pouId, name) =>
+    set((state) => {
+      if (!state.currentProject) return state;
+      return {
+        currentProject: {
+          ...state.currentProject,
+          poUs: state.currentProject.poUs.map((p) =>
+            p.id === pouId ? { ...p, name, updatedAt: new Date().toISOString() } : p
+          ),
+        },
+        hasUnsavedChanges: true,
+      };
+    }),
+
+  duplicatePou: (pouId) =>
+    set((state) => {
+      if (!state.currentProject) return state;
+      const original = state.currentProject.poUs.find((p) => p.id === pouId);
+      if (!original) return state;
+      const clone: POU = {
+        ...original,
+        id: crypto.randomUUID(),
+        name: `${original.name}_副本`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      return {
+        currentProject: {
+          ...state.currentProject,
+          poUs: [...state.currentProject.poUs, clone],
+        },
+        selectedPouId: clone.id,
         hasUnsavedChanges: true,
       };
     }),
