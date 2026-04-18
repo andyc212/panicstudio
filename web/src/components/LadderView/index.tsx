@@ -75,6 +75,7 @@ export function LadderView() {
             className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${simMode ? 'bg-success/10 text-success' : 'text-text-muted hover:text-text-primary hover:bg-sidebar-hover'}`}
             type="button"
             aria-label={simMode ? '停止仿真' : '启动仿真'}
+            aria-pressed={simMode}
           >
             {simMode ? <Square size={10} /> : <Play size={10} />}
             {simMode ? '停止' : '仿真'}
@@ -203,15 +204,16 @@ function renderElement(
       }
     }
   };
-  const clickable = (!!jumpToLine && !!el.sourceLine) || isSimContact;
+  const clickable = (!!jumpToLine && !!el.sourceLine) || (isSimContact && !!el.label);
   const hoverStyle = clickable ? { cursor: 'pointer' } : undefined;
   const a11yProps = clickable
     ? {
         tabIndex: 0 as const,
         role: 'button' as const,
         'aria-label': isSimContact
-          ? `${el.label} — ${simActive ? '已激活' : '未激活'}（点击切换）`
-          : `${el.label || '元素'} — 第 ${el.sourceLine} 行`,
+          ? `${el.label || '未知触点'} — ${simActive ? '已激活' : '未激活'}（点击切换）`
+          : `${el.label || '元素'}${el.sourceLine ? ` — 第 ${el.sourceLine} 行` : ''}`,
+        'aria-pressed': isSimContact ? simActive : undefined,
         onKeyDown: handleKeyDown,
       }
     : {};
