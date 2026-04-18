@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useProjectStore, useUIStore } from '@stores';
 import { ZoomIn, ZoomOut, RefreshCw, Play, Square } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { parseSTtoLD, type LDElementType } from '@services/parser/stParser';
 
 const ELEMENT_COLORS: Record<LDElementType, string> = {
@@ -21,6 +22,7 @@ const ELEMENT_COLORS: Record<LDElementType, string> = {
 };
 
 export function LadderView() {
+  const { t } = useTranslation();
   const { currentProject, selectedPouId } = useProjectStore();
   const { jumpToLine } = useUIStore();
   const selectedPou = currentProject?.poUs.find((p: import('@types').POU) => p.id === selectedPouId);
@@ -45,13 +47,13 @@ export function LadderView() {
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between px-3 py-1.5 border-b border-border bg-base-light">
         <span className="text-xs font-medium text-text-secondary">
-          Ladder Diagram {rungs.length > 0 && `(${rungs.length} networks)`}
+          {t('ladder.title')} {rungs.length > 0 && `(${t('ladder.networks', { count: rungs.length })})`}
         </span>
         <div className="flex items-center gap-1">
           <button
             className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors"
             onClick={() => setZoom(z => Math.max(z / 1.2, 0.5))}
-            aria-label="缩小"
+            aria-label={t('ladder.zoomOut')}
             type="button"
           >
             <ZoomOut size={12} />
@@ -60,13 +62,13 @@ export function LadderView() {
           <button
             className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors"
             onClick={() => setZoom(z => Math.min(z * 1.2, 3))}
-            aria-label="放大"
+            aria-label={t('ladder.zoomIn')}
             type="button"
           >
             <ZoomIn size={12} />
           </button>
           <div className="w-px h-3 bg-border mx-1" />
-          <button className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors" aria-label="重置视图" type="button">
+          <button className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors" aria-label={t('ladder.resetView')} type="button">
             <RefreshCw size={12} />
           </button>
           <div className="w-px h-3 bg-border mx-1" />
@@ -74,11 +76,11 @@ export function LadderView() {
             onClick={() => { setSimMode(!simMode); setSimStates({}); }}
             className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${simMode ? 'bg-success/10 text-success' : 'text-text-muted hover:text-text-primary hover:bg-sidebar-hover'}`}
             type="button"
-            aria-label={simMode ? '停止仿真' : '启动仿真'}
+            aria-label={simMode ? t('ladder.simStop') : t('ladder.simStart')}
             aria-pressed={simMode}
           >
             {simMode ? <Square size={10} /> : <Play size={10} />}
-            {simMode ? '停止' : '仿真'}
+            {simMode ? t('ladder.simStop') : t('ladder.simStart')}
           </button>
         </div>
       </div>
@@ -127,7 +129,7 @@ export function LadderView() {
 
                   {/* Elements */}
                   {rung.elements.map((el, ei) =>
-                    renderElement(el, ELEMENT_COLORS, ei === 0, ei === rung.elements.length - 1, busY, maxWidth - 15, jumpToLine, simMode, simStates, setSimStates)
+                    renderElement(el, ELEMENT_COLORS, ei === 0, ei === rung.elements.length - 1, busY, maxWidth - 15, jumpToLine, simMode, simStates, setSimStates, t)
                   )}
 
                   {/* Right rail */}
@@ -158,8 +160,8 @@ export function LadderView() {
                 <circle cx="155" cy="40" r="15" fill="none" stroke="currentColor" strokeWidth="1" />
                 <line x1="170" y1="10" x2="170" y2="70" stroke="currentColor" strokeWidth="2" />
               </svg>
-              <p className="text-xs">梯形图可视化区域</p>
-              <p className="text-[10px] mt-0.5">从 ST 代码自动生成</p>
+              <p className="text-xs">{t('ladder.emptyTitle')}</p>
+              <p className="text-[10px] mt-0.5">{t('ladder.emptyHint')}</p>
             </div>
           </div>
         )}
@@ -179,6 +181,7 @@ function renderElement(
   simMode?: boolean,
   simStates?: Record<string, boolean>,
   setSimStates?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
+  t?: (key: string, options?: any) => string,
 ) {
   const isSimContact = simMode && (el.type === 'contactNO' || el.type === 'contactNC');
   const simActive = isSimContact && el.label ? (simStates?.[el.label] ?? false) : false;
@@ -210,9 +213,9 @@ function renderElement(
     ? {
         tabIndex: 0 as const,
         role: 'button' as const,
-        'aria-label': isSimContact
-          ? `${el.label || '未知触点'} — ${simActive ? '已激活' : '未激活'}（点击切换）`
-          : `${el.label || '元素'}${el.sourceLine ? ` — 第 ${el.sourceLine} 行` : ''}`,
+        'aria-label': isSimContact && t
+          ? t('ladder.elementToggle', { label: el.label || '?', state: simActive ? t('common.on') : t('common.off') })
+          : t ? t('ladder.elementLabel', { label: el.label || '?', line: el.sourceLine }) : `${el.label || '?'}${el.sourceLine ? ` — Line ${el.sourceLine}` : ''}`,
         'aria-pressed': isSimContact ? simActive : undefined,
         onKeyDown: handleKeyDown,
       }

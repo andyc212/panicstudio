@@ -1,4 +1,4 @@
-# PanicStudio — Agent Context & Memory Bank
+# PLC-AIStudio — Agent Context & Memory Bank
 
 > **Purpose**: This file is the single source of truth for AI agents working on this project.
 > **Rule**: Every agent session MUST read this file first. Every completed task MUST update this file.
@@ -7,7 +7,7 @@
 
 ## 1. Project Overview
 
-**PanicStudio** is a web app helping Panasonic PLC developers use AI (Kimi) to write IEC 61131-3 ST programs.
+**PLC-AIStudio** is a web app helping Panasonic PLC developers use AI (Kimi) to write IEC 61131-3 ST programs.
 
 - **Stack**: React SPA (Vite + React 19 + TypeScript + Tailwind + Monaco) + Node.js API (Express + TypeScript + Prisma + SQLite)
 - **Paths**: Aliases `@components`, `@stores`, `@services`, `@types`, `@styles` configured in `vite.config.ts`

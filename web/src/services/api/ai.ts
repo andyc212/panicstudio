@@ -1,14 +1,20 @@
-import type { AIGenerationForm } from '@types';
+import type { AIGenerationForm, AIMessage } from '@types';
 import { apiClient } from './client';
 
-export async function* streamAIGeneration(formData: AIGenerationForm) {
+export interface AIStreamChunk {
+  type: 'chunk' | 'done' | 'error';
+  content?: string;
+  error?: string;
+}
+
+async function* streamAIEndpoint(body: Record<string, unknown>): AsyncGenerator<AIStreamChunk> {
   const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/ai/generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${localStorage.getItem('panicstudio-token') || ''}`,
     },
-    body: JSON.stringify({ formData }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -36,7 +42,7 @@ export async function* streamAIGeneration(formData: AIGenerationForm) {
 
       if (message.startsWith('data: ')) {
         try {
-          const data = JSON.parse(message.slice(6));
+          const data = JSON.parse(message.slice(6)) as AIStreamChunk;
           yield data;
         } catch {
           // Ignore malformed JSON
@@ -52,11 +58,19 @@ export async function* streamAIGeneration(formData: AIGenerationForm) {
     const message = buffer.trim();
     if (message.startsWith('data: ')) {
       try {
-        const data = JSON.parse(message.slice(6));
+        const data = JSON.parse(message.slice(6)) as AIStreamChunk;
         yield data;
       } catch {
         // Ignore malformed JSON
       }
     }
   }
+}
+
+export async function* streamAIGeneration(formData: AIGenerationForm) {
+  yield* streamAIEndpoint({ formData });
+}
+
+export async function* streamAIChat(messages: Pick<AIMessage, 'role' | 'content'>[]) {
+  yield* streamAIEndpoint({ messages });
 }

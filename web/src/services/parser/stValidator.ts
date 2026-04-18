@@ -288,9 +288,23 @@ export function validateSTCode(code: string, context?: ValidationContext): Valid
     return Math.max(0, Math.min(100, s));
   };
 
-  // Complexity score: inverse of code length (shorter = simpler = better, but not too short)
+  // Complexity score: industrial PLC programs range from 100–10,000+ lines
+  // Based on IEC 61131-3 real-world projects: small=100-500, medium=500-2000, large=2000+
   const lineCount = lines.length;
-  const complexityScore = lineCount < 10 ? 60 : lineCount > 200 ? 60 : 100 - Math.abs(lineCount - 50) / 2;
+  let complexityScore: number;
+  if (lineCount < 20) {
+    complexityScore = 60; // Too short, possibly incomplete
+  } else if (lineCount <= 100) {
+    complexityScore = 80 + (lineCount - 20) * 0.25; // 80–100
+  } else if (lineCount <= 500) {
+    complexityScore = 100; // Ideal range for typical industrial programs
+  } else if (lineCount <= 2000) {
+    complexityScore = 100 - (lineCount - 500) * 0.03; // 100–55
+  } else if (lineCount <= 5000) {
+    complexityScore = 55 - (lineCount - 2000) * 0.01; // 55–25
+  } else {
+    complexityScore = 25; // Very large, consider POU decomposition
+  }
 
   const dimensions: ValidationDimension[] = [
     { name: 'syntax', score: calcDimScore(syntaxIssues), label: '语法正确性' },

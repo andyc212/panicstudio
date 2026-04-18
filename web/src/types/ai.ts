@@ -28,6 +28,7 @@ export interface AIStreamChunk {
   type: 'chunk' | 'done' | 'error';
   content?: string;
   error?: string;
+  model?: string;
 }
 
 export interface GenerateRequest {

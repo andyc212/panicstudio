@@ -1,10 +1,10 @@
-# PanicStudio 项目进度记录
+# PLC-AIStudio 项目进度记录
 
 > 本文档用于在上下文压缩后恢复项目状态。每次重要决策和里程碑完成后必须更新。
 
 ## 项目概述
 
-- **名称**: PanicStudio
+- **名称**: PLC-AIStudio
 - **定位**: 帮助 Panasonic PLC 开发人员利用 AI（Kimi）快速编写 IEC 61131-3 标准 PLC 程序的 Web 应用
 - **架构**: React SPA（前端）+ Node.js API（后端），前后端分离
 - **收费模式**: 会员订阅制

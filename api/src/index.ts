@@ -40,6 +40,6 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 PanicStudio API running on http://localhost:${PORT}`);
+  console.log(`🚀 PLC-AIStudio API running on http://localhost:${PORT}`);
   console.log(`   Health: http://localhost:${PORT}/api/health`);
 });

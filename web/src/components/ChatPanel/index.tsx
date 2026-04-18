@@ -1,23 +1,60 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useUIStore, useProjectStore, useAuthStore } from '@stores';
-import { streamAIGeneration } from '@services/api/ai';
+import { streamAIGeneration, streamAIChat } from '@services/api/ai';
 import { ValidationPanel } from '@components/ValidationPanel';
 import { parseFile } from '@services/parser/fileParser';
 import type { ParsedFileResult } from '@services/parser/fileParser';
+import { validateSTCode, getScoreColor } from '@services/parser/stValidator';
+import type { AIMessage } from '@types';
 import {
   MessageSquare, ListOrdered, History, Zap, Loader2,
   Upload, FileText, FileSpreadsheet, X, CheckCircle,
   Sparkles, Clock, Copy, RotateCcw, Edit3, FileDown,
+  Send, Trash2, Bot, User,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
+const HISTORY_KEY = 'panicstudio-ai-history';
+
+interface HistoryRecord {
+  id: string;
+  timestamp: string;
+  scenario: string;
+  code: string;
+  model: string;
+  validationScore: number;
+  ioList: Array<{ address: string; type: 'INPUT' | 'OUTPUT'; dataType: string; name: string; description: string }>;
+}
+
+function getHistory(): HistoryRecord[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(record: HistoryRecord) {
+  const history = getHistory();
+  history.unshift(record);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 100)));
+}
+
+function deleteHistory(id: string) {
+  const history = getHistory().filter((h) => h.id !== id);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
 
 export function ChatPanel() {
+  const { t } = useTranslation();
   const { activeChatTab, setActiveChatTab } = useUIStore();
 
   const tabs = [
-    { id: 'guided' as const, label: '引导生成', icon: <ListOrdered size={14} /> },
-    { id: 'chat' as const, label: '自由对话', icon: <MessageSquare size={14} /> },
-    { id: 'history' as const, label: '历史', icon: <History size={14} /> },
+    { id: 'guided' as const, label: t('tabs.guided'), icon: <ListOrdered size={14} /> },
+    { id: 'chat' as const, label: t('tabs.chat'), icon: <MessageSquare size={14} /> },
+    { id: 'history' as const, label: t('tabs.history'), icon: <History size={14} /> },
   ];
 
   return (
@@ -55,6 +92,7 @@ export function ChatPanel() {
 }
 
 function GuidedMode() {
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useAuthStore();
   const { currentProject, addPou } = useProjectStore();
   const { setActiveChatTab } = useUIStore();
@@ -157,7 +195,7 @@ function GuidedMode() {
   // === Generate ===
   const handleGenerate = useCallback(async () => {
     if (!isAuthenticated) {
-      setError('请先登录');
+      setError(t('chatPanel.loginRequired'));
       return;
     }
 
@@ -190,6 +228,7 @@ function GuidedMode() {
 
       let code = '';
       let currentStep = 1;
+      let usedModel = 'moonshot-v1-8k';
       setGenerationStep(1);
       for await (const chunk of streamAIGeneration(formData as any)) {
         if (chunk.type === 'chunk') {
@@ -201,7 +240,9 @@ function GuidedMode() {
             setGenerationStep(newStep);
           }
         } else if (chunk.type === 'error') {
-          setError(chunk.error || '生成失败');
+          setError(chunk.error || t('chatPanel.generationFailed'));
+        } else if (chunk.type === 'done' && chunk.model) {
+          usedModel = chunk.model;
         }
       }
 
@@ -221,9 +262,24 @@ function GuidedMode() {
           updatedAt: new Date().toISOString(),
         };
         addPou(newPou);
+
+        // Save to history
+        const validation = validateSTCode(code, {
+          declaredIO: ioList.filter((io) => io.address).map((io) => ({ address: io.address, name: io.name || io.address, type: io.type as 'INPUT' | 'OUTPUT' })),
+          requiredSafetyConditions: safetyConditions.filter((s) => s.enabled).map((s) => s.description),
+        });
+        saveHistory({
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          scenario: scenario || '自定义控制',
+          code,
+          model: usedModel,
+          validationScore: validation.score,
+          ioList: ioList.filter((io) => io.address),
+        });
       }
     } catch (err: any) {
-      setError(err.message || '生成失败');
+      setError(err.message || t('chatPanel.generationFailed'));
     } finally {
       setIsGenerating(false);
       setGenerationStep(0);
@@ -235,7 +291,7 @@ function GuidedMode() {
       await navigator.clipboard.writeText(generatedCode);
       setCopied(true);
     } catch {
-      setError('复制失败，请手动复制代码');
+      setError(t('chatPanel.copyFailed'));
     }
   }, [generatedCode]);
 
@@ -273,7 +329,7 @@ function GuidedMode() {
     <div className="space-y-3">
       {!isAuthenticated && (
         <div className="p-2 rounded-lg bg-warning/10 border border-warning/20 text-xs text-warning">
-          ⚠️ 请先登录以使用 AI 生成功能
+          {t('chatPanel.loginRequired')}
         </div>
       )}
 
@@ -281,15 +337,15 @@ function GuidedMode() {
       <div className="rounded-lg border border-dashed border-border bg-base p-3">
         <div className="text-xs font-medium text-accent mb-2 flex items-center gap-1">
           <Upload size={12} />
-          上传配置文件（可选）
+          {t('chatPanel.uploadTitle')}
         </div>
         <p className="text-[10px] text-text-muted mb-2">
-          支持 CSV / Excel（I/O清单）、TXT / Word（工艺流程）、自动解析填充表单
+          {t('chatPanel.uploadHint')}
         </p>
 
         <label className="flex items-center justify-center gap-2 w-full py-2 rounded-md bg-sidebar-hover border border-border hover:border-accent hover:bg-sidebar-active transition-colors cursor-pointer">
           <Upload size={14} className="text-text-secondary" />
-          <span className="text-xs text-text-secondary">点击上传文件</span>
+          <span className="text-xs text-text-secondary">{t('chatPanel.uploadClick')}</span>
           <input
             type="file"
             multiple
@@ -316,9 +372,9 @@ function GuidedMode() {
 
                 {item.status === 'done' && (
                   <span className="text-text-muted">
-                    {item.parsed.ioList && `${item.parsed.ioList.length} I/O `}
-                    {item.parsed.processSteps && `${item.parsed.processSteps.length} 步骤 `}
-                    {item.parsed.rawText && '已读取'}
+                    {item.parsed.ioList && t('chatPanel.ioParsed', { count: item.parsed.ioList.length }) + ' '}
+                    {item.parsed.processSteps && t('chatPanel.stepsParsed', { count: item.parsed.processSteps.length }) + ' '}
+                    {item.parsed.rawText && t('chatPanel.read')}
                   </span>
                 )}
 
@@ -333,18 +389,18 @@ function GuidedMode() {
 
       {/* Step 1: Scenario */}
       <div className="rounded-lg border border-border bg-base p-3">
-        <div className="text-xs font-medium text-accent mb-2">Step 1: 控制场景</div>
+        <div className="text-xs font-medium text-accent mb-2">{t('chatPanel.step1')}</div>
         <input
           value={scenario}
           onChange={(e) => setScenario(e.target.value)}
-          placeholder="例如：电机启停控制"
+          placeholder={t('chatPanel.scenarioPlaceholder')}
           className="w-full px-2.5 py-1.5 rounded-md bg-sidebar-hover border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
         />
       </div>
 
       {/* Step 2: I/O */}
       <div className="rounded-lg border border-border bg-base p-3">
-        <div className="text-xs font-medium text-accent mb-2">Step 2: I/O 配置</div>
+        <div className="text-xs font-medium text-accent mb-2">{t('chatPanel.step2')}</div>
         <div className="space-y-1.5 max-h-32 overflow-y-auto">
           {ioList.map((io, i) => (
             <div key={i} className="flex gap-1">
@@ -353,22 +409,22 @@ function GuidedMode() {
                 <option>INPUT</option>
                 <option>OUTPUT</option>
               </select>
-              <input value={io.name} onChange={(e) => updateIO(i, 'name', e.target.value)} placeholder="变量名" className="flex-1 px-1.5 py-1 rounded bg-sidebar-hover border border-border text-[10px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent" />
-              <input value={io.description} onChange={(e) => updateIO(i, 'description', e.target.value)} placeholder="说明" className="flex-1 px-1.5 py-1 rounded bg-sidebar-hover border border-border text-[10px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent" />
+              <input value={io.name} onChange={(e) => updateIO(i, 'name', e.target.value)} placeholder={t('chatPanel.ioName')} className="flex-1 px-1.5 py-1 rounded bg-sidebar-hover border border-border text-[10px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent" />
+              <input value={io.description} onChange={(e) => updateIO(i, 'description', e.target.value)} placeholder={t('chatPanel.ioDesc')} className="flex-1 px-1.5 py-1 rounded bg-sidebar-hover border border-border text-[10px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent" />
             </div>
           ))}
         </div>
-        <button onClick={addIO} className="mt-1.5 text-[10px] text-accent hover:text-accent-light transition-colors">+ 添加 I/O</button>
+        <button onClick={addIO} className="mt-1.5 text-[10px] text-accent hover:text-accent-light transition-colors">{t('chatPanel.addIO')}</button>
       </div>
 
       {/* Step 3: Process */}
       <div className="rounded-lg border border-border bg-base p-3">
-        <div className="text-xs font-medium text-accent mb-2">Step 3: 动作流程</div>
+        <div className="text-xs font-medium text-accent mb-2">{t('chatPanel.step3')}</div>
         <div className="space-y-1">
           {processSteps.slice(0, stepsExpanded ? processSteps.length : 10).map((step, i) => (
             <div key={i} className="flex items-center gap-1">
               <span className="text-[10px] text-text-muted w-4">{i + 1}.</span>
-              <input value={step.description} onChange={(e) => updateStep(i, e.target.value)} placeholder="动作描述" className="flex-1 px-2 py-1 rounded bg-sidebar-hover border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent" />
+              <input value={step.description} onChange={(e) => updateStep(i, e.target.value)} placeholder={t('chatPanel.stepDescPlaceholder')} className="flex-1 px-2 py-1 rounded bg-sidebar-hover border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent" />
             </div>
           ))}
         </div>
@@ -378,15 +434,15 @@ function GuidedMode() {
             className="mt-1 text-[10px] text-text-muted hover:text-text-primary transition-colors"
             type="button"
           >
-            {stepsExpanded ? '收起' : `展开剩余 ${processSteps.length - 10} 项`}
+            {stepsExpanded ? t('chatPanel.collapse') : t('chatPanel.expandRemaining', { count: processSteps.length - 10 })}
           </button>
         )}
-        <button onClick={addStep} className="mt-1.5 text-[10px] text-accent hover:text-accent-light transition-colors" type="button">+ 添加步骤</button>
+        <button onClick={addStep} className="mt-1.5 text-[10px] text-accent hover:text-accent-light transition-colors" type="button">{t('chatPanel.addStep')}</button>
       </div>
 
       {/* Step 4: Safety */}
       <div className="rounded-lg border border-border bg-base p-3">
-        <div className="text-xs font-medium text-accent mb-2">Step 4: 安全条件</div>
+        <div className="text-xs font-medium text-accent mb-2">{t('chatPanel.step4')}</div>
         <div className="space-y-1">
           {safetyConditions.map((s) => (
             <label key={s.id} className="flex items-center gap-2 text-[11px] text-text-secondary cursor-pointer">
@@ -399,8 +455,8 @@ function GuidedMode() {
 
       {/* Step 5: Notes */}
       <div className="rounded-lg border border-border bg-base p-3">
-        <div className="text-xs font-medium text-accent mb-2">补充说明（可选）</div>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="其他特殊要求..." className="w-full px-2 py-1 rounded bg-sidebar-hover border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none" />
+        <div className="text-xs font-medium text-accent mb-2">{t('chatPanel.notes')}</div>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={t('chatPanel.notesPlaceholder')} className="w-full px-2 py-1 rounded bg-sidebar-hover border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none" />
       </div>
 
       {/* Generate Button */}
@@ -412,12 +468,12 @@ function GuidedMode() {
         {isGenerating ? (
           <>
             <Loader2 size={16} className="animate-spin" />
-            生成中...
+            {t('chatPanel.generating')}
           </>
         ) : (
           <>
             <Zap size={16} />
-            生成 PLC 程序
+            {t('chatPanel.generate')}
           </>
         )}
       </button>
@@ -440,41 +496,41 @@ function GuidedMode() {
           {/* Action bar */}
           <div className="flex items-center justify-between px-2 py-1.5 bg-sidebar-hover border-b border-border">
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-text-secondary font-medium">生成结果</span>
-              <span className="text-[10px] text-accent ml-1">已自动创建 POU</span>
+              <span className="text-[10px] text-text-secondary font-medium">{t('chatPanel.result')}</span>
+              <span className="text-[10px] text-accent ml-1">{t('chatPanel.pouCreated')}</span>
             </div>
             <div className="flex items-center gap-0.5">
               <button
                 onClick={handleRegenerate}
                 className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-secondary hover:text-text-primary hover:bg-sidebar-active transition-colors"
-                title="重新生成"
+                title={t('chatPanel.regenerate')}
               >
                 <RotateCcw size={10} />
-                重新生成
+                {t('chatPanel.regenerate')}
               </button>
               <button
                 onClick={handleModifyRequest}
                 className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-secondary hover:text-text-primary hover:bg-sidebar-active transition-colors"
-                title="修改需求"
+                title={t('chatPanel.modify')}
               >
                 <Edit3 size={10} />
-                修改需求
+                {t('chatPanel.modify')}
               </button>
               <button
                 onClick={handleCopyCode}
                 className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-secondary hover:text-text-primary hover:bg-sidebar-active transition-colors"
-                title="复制代码"
+                title={t('chatPanel.copy')}
               >
                 {copied ? <CheckCircle size={10} className="text-success" /> : <Copy size={10} />}
-                {copied ? '已复制' : '复制'}
+                {copied ? t('chatPanel.copied') : t('chatPanel.copy')}
               </button>
               <button
                 onClick={handleExportCode}
                 className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-secondary hover:text-text-primary hover:bg-sidebar-active transition-colors"
-                title="导出 .st 文件"
+                title={t('chatPanel.export')}
               >
                 <FileDown size={10} />
-                导出
+                {t('chatPanel.export')}
               </button>
             </div>
           </div>
@@ -508,11 +564,12 @@ function inferGenerationStep(code: string): 1 | 2 | 3 | 4 {
 }
 
 function GenerationProgress({ step }: { step: number }) {
+  const { t } = useTranslation();
   const steps = [
-    { label: '分析需求', desc: '理解场景和 I/O 配置' },
-    { label: '规划变量', desc: '生成 VAR_INPUT / VAR_OUTPUT' },
-    { label: '编写逻辑', desc: '构建程序主体和条件判断' },
-    { label: '验证安全', desc: '检查安全条件和语法完整性' },
+    { label: t('chatPanel.progressAnalyze'), desc: t('chatPanel.progressAnalyze') },
+    { label: t('chatPanel.progressPlan'), desc: t('chatPanel.progressPlan') },
+    { label: t('chatPanel.progressWrite'), desc: t('chatPanel.progressWrite') },
+    { label: t('chatPanel.progressVerify'), desc: t('chatPanel.progressVerify') },
   ];
 
   return (
@@ -520,7 +577,7 @@ function GenerationProgress({ step }: { step: number }) {
       <div className="px-3 py-2 bg-sidebar-hover border-b border-border">
         <div className="flex items-center gap-2">
           <Loader2 size={12} className="text-accent animate-spin" />
-          <span className="text-[10px] text-text-secondary font-medium">AI 生成中…</span>
+          <span className="text-[10px] text-text-secondary font-medium">{t('chatPanel.generatingProgress')}</span>
         </div>
       </div>
       <div className="px-3 py-2 space-y-1.5">
@@ -589,24 +646,384 @@ function ComingSoon({
   );
 }
 
+const CHAT_STORAGE_KEY = 'panicstudio-chat-messages';
+
+function loadChatMessages(): AIMessage[] {
+  try {
+    const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return [];
+}
+
+function saveChatMessages(messages: AIMessage[]) {
+  try {
+    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+  } catch { /* ignore */ }
+}
+
+interface ParsedPart {
+  type: 'text' | 'code';
+  content: string;
+  language?: string;
+}
+
+function parseMarkdownContent(text: string): ParsedPart[] {
+  const parts: ParsedPart[] = [];
+  const regex = /```(\w*)\n?([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+    }
+    parts.push({ type: 'code', language: match[1] || 'iec-st', content: match[2].trimEnd() });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    parts.push({ type: 'text', content: text.slice(lastIndex) });
+  }
+  if (parts.length === 0 && text) {
+    parts.push({ type: 'text', content: text });
+  }
+  return parts;
+}
+
 function ChatMode() {
+  const { t } = useTranslation();
+  const { isAuthenticated } = useAuthStore();
+  const [messages, setMessages] = useState<AIMessage[]>(loadChatMessages);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    saveChatMessages(messages);
+  }, [messages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleCopyCode = useCallback(async (code: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCodeId(id);
+      setTimeout(() => setCopiedCodeId((prev) => (prev === id ? null : prev)), 2000);
+    } catch {
+      setError(t('chatPanel.copyFailed'));
+    }
+  }, []);
+
+  const handleSend = useCallback(async () => {
+    const text = input.trim();
+    if (!text || isLoading) return;
+    if (!isAuthenticated) {
+      setError(t('chatPanel.loginRequired'));
+      return;
+    }
+
+    const userMsg: AIMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: text,
+      timestamp: new Date().toISOString(),
+    };
+
+    const assistantMsg: AIMessage = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, userMsg, assistantMsg]);
+    setInput('');
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
+      let content = '';
+      for await (const chunk of streamAIChat(history)) {
+        if (chunk.type === 'chunk' && chunk.content) {
+          content += chunk.content;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantMsg.id ? { ...m, content } : m))
+          );
+        } else if (chunk.type === 'error') {
+          setError(chunk.error || t('chatPanel.generationFailed'));
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || t('chatPanel.generationFailed'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [input, isLoading, isAuthenticated, messages]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleClear = useCallback(() => {
+    setMessages([]);
+    setError('');
+    localStorage.removeItem(CHAT_STORAGE_KEY);
+  }, []);
+
   return (
-    <ComingSoon
-      icon={<MessageSquare size={20} className="text-text-muted" />}
-      title="自由对话模式"
-      description="通过自然语言直接描述需求，AI 将实时理解并生成对应的 PLC 程序。无需填写表单，像与工程师对话一样简单。"
-      hint="预计近期上线"
-    />
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-sidebar-hover shrink-0">
+        <div className="flex items-center gap-1.5">
+          <Bot size={14} className="text-accent" />
+          <span className="text-xs font-medium text-text-primary">{t('chatPanel.chatHeader')}</span>
+        </div>
+        <button
+          onClick={handleClear}
+          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] text-text-secondary hover:text-error hover:bg-error/10 transition-colors"
+          title={t('chatPanel.clearChat')}
+        >
+          <Trash2 size={10} />
+          {t('chatPanel.clearChat')}
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-sidebar-active border border-border mb-3">
+              <MessageSquare size={18} className="text-text-muted" />
+            </div>
+            <h3 className="text-sm font-medium text-text-primary mb-1">{t('chatPanel.chatModeTitle')}</h3>
+            <p className="text-[11px] text-text-secondary leading-relaxed max-w-[220px]">
+              {t('chatPanel.chatModeDesc')}
+            </p>
+          </div>
+        )}
+
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+          >
+            <div className="shrink-0 mt-0.5">
+              {msg.role === 'user' ? (
+                <div className="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center">
+                  <User size={12} className="text-accent" />
+                </div>
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-success/10 flex items-center justify-center">
+                  <Bot size={12} className="text-success" />
+                </div>
+              )}
+            </div>
+            <div
+              className={`max-w-[85%] rounded-lg px-3 py-2 text-xs leading-relaxed ${
+                msg.role === 'user'
+                  ? 'bg-accent/10 text-text-primary border border-accent/20'
+                  : 'bg-sidebar-hover text-text-secondary border border-border'
+              }`}
+            >
+              {parseMarkdownContent(msg.content).map((part, idx) =>
+                part.type === 'code' ? (
+                  <div key={idx} className="my-2 relative group">
+                    <div className="flex items-center justify-between px-2 py-1 bg-[#1e1e1e] border border-[#333] border-b-0 rounded-t">
+                      <span className="text-[10px] text-text-muted font-mono">
+                        {part.language || 'code'}
+                      </span>
+                      <button
+                        onClick={() => handleCopyCode(part.content, `${msg.id}-${idx}`)}
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-muted hover:text-text-primary hover:bg-sidebar-active transition-colors"
+                      >
+                        {copiedCodeId === `${msg.id}-${idx}` ? (
+                          <CheckCircle size={10} className="text-success" />
+                        ) : (
+                          <Copy size={10} />
+                        )}
+                        {copiedCodeId === `${msg.id}-${idx}` ? t('chatPanel.copied') : t('chatPanel.copy')}
+                      </button>
+                    </div>
+                    <pre className="p-2 bg-[#1e1e1e] border border-[#333] rounded-b text-[10px] text-text-secondary overflow-auto max-h-48 font-mono">
+                      <code>{part.content}</code>
+                    </pre>
+                  </div>
+                ) : (
+                  <div key={idx} className="whitespace-pre-wrap">
+                    {part.content}
+                  </div>
+                )
+              )}
+              {msg.role === 'assistant' && msg.content === '' && isLoading && (
+                <div className="flex items-center gap-1.5 text-text-muted">
+                  <Loader2 size={12} className="animate-spin" />
+                  <span className="text-[10px]">{t('chatPanel.aiThinking')}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {error && (
+          <div className="p-2 rounded bg-error/10 border border-error/20 text-xs text-error">
+            {error}
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="shrink-0 border-t border-border p-3 bg-sidebar-hover">
+        {!isAuthenticated && (
+          <div className="mb-2 p-2 rounded-lg bg-warning/10 border border-warning/20 text-[10px] text-warning">
+            {t('chatPanel.loginRequired')}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t('chatPanel.chatPlaceholder')}
+            rows={2}
+            disabled={isLoading || !isAuthenticated}
+            className="flex-1 px-3 py-2 rounded-md bg-sidebar-hover border border-border text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent resize-none disabled:opacity-50"
+          />
+          <button
+            onClick={handleSend}
+            disabled={isLoading || !input.trim() || !isAuthenticated}
+            className="shrink-0 w-9 h-9 rounded-md bg-accent text-white flex items-center justify-center hover:bg-accent-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
 function HistoryMode() {
+  const { t } = useTranslation();
+  const { addPou, selectPou } = useProjectStore();
+  const { setActiveChatTab } = useUIStore();
+  const [history, setHistory] = useState<HistoryRecord[]>(getHistory);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const refresh = () => setHistory(getHistory());
+
+  const handleLoad = (record: HistoryRecord) => {
+    const newPou = {
+      id: crypto.randomUUID(),
+      name: record.scenario,
+      type: 'PROGRAM' as const,
+      language: 'ST' as const,
+      varInputs: record.ioList.filter((io) => io.type === 'INPUT'),
+      varOutputs: record.ioList.filter((io) => io.type === 'OUTPUT'),
+      varLocals: [],
+      body: record.code,
+      description: `从历史记录加载: ${record.scenario}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    addPou(newPou);
+    selectPou(newPou.id);
+    setActiveChatTab('guided');
+  };
+
+  const handleDelete = (id: string) => {
+    deleteHistory(id);
+    refresh();
+    setConfirmDelete(null);
+  };
+
+  if (history.length === 0) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex-1 flex items-center justify-center px-6">
+          <div className="text-center max-w-[240px]">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-sidebar-active border border-border mb-4" aria-hidden="true">
+              <Clock size={20} className="text-text-muted" />
+            </div>
+            <h3 className="text-sm font-medium text-text-primary mb-1">{t('chatPanel.noHistory')}</h3>
+            <p className="text-xs text-text-secondary leading-relaxed">{t('chatPanel.noHistoryHint')}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <ComingSoon
-      icon={<Clock size={20} className="text-text-muted" />}
-      title="生成历史"
-      description="查看和管理所有 AI 生成记录，支持版本对比、回滚到任意历史版本，以及批量导出。"
-      hint="预计近期上线"
-    />
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-1 py-2">
+        <span className="text-xs text-text-secondary">{t('chatPanel.historyCount', { count: history.length })}</span>
+      </div>
+      <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+        {history.map((record) => (
+          <div
+            key={record.id}
+            className="rounded-lg border border-border bg-base p-3 hover:border-accent/40 transition-colors group"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <button
+                onClick={() => handleLoad(record)}
+                className="flex-1 text-left min-w-0"
+                title={t('chatPanel.loadToEditor')}
+              >
+                <div className="text-xs font-medium text-text-primary truncate">{record.scenario}</div>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="text-[10px] text-text-muted">{new Date(record.timestamp).toLocaleString('zh-CN')}</span>
+                  <span className="text-[10px] px-1 py-0.5 rounded bg-sidebar-active text-text-muted">{record.model}</span>
+                  <span
+                    className="text-[10px] px-1 py-0.5 rounded font-bold"
+                    style={{
+                      backgroundColor: `${getScoreColor(record.validationScore)}20`,
+                      color: getScoreColor(record.validationScore),
+                    }}
+                  >
+                    {record.validationScore}
+                  </span>
+                </div>
+              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                {confirmDelete === record.id ? (
+                  <>
+                    <button
+                      onClick={() => handleDelete(record.id)}
+                      className="px-1.5 py-0.5 rounded text-[10px] bg-error/10 text-error hover:bg-error/20 transition-colors"
+                    >
+                      {t('common.confirm')}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(null)}
+                      className="px-1.5 py-0.5 rounded text-[10px] bg-sidebar-active text-text-secondary hover:text-text-primary transition-colors"
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDelete(record.id)}
+                    className="p-1 rounded text-text-muted hover:text-error hover:bg-error/10 transition-colors opacity-0 group-hover:opacity-100"
+                    title={t('common.delete')}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

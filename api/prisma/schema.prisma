@@ -41,6 +41,7 @@ model AILog {
   userId           String   @map("user_id")
   promptTokens     Int      @map("prompt_tokens")
   completionTokens Int      @map("completion_tokens")
+  model            String?  @map("model")
   createdAt        DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

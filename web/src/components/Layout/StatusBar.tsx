@@ -1,7 +1,27 @@
 import { Circle, Wifi, Cpu } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@stores';
 
+function LanguageToggle() {
+  const { i18n } = useTranslation();
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'zh' ? 'en' : 'zh';
+    i18n.changeLanguage(newLang);
+    localStorage.setItem('panicstudio-language', newLang);
+  };
+  return (
+    <button
+      onClick={toggleLanguage}
+      className="text-[11px] px-1.5 py-0.5 rounded border border-border hover:bg-sidebar-hover transition-colors"
+      type="button"
+    >
+      {i18n.language === 'zh' ? 'EN' : '中'}
+    </button>
+  );
+}
+
 export function StatusBar() {
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useAuthStore();
 
   return (
@@ -20,16 +40,17 @@ export function StatusBar() {
 
       {/* 中间：项目信息 */}
       <div className="flex items-center gap-3">
-        <span>未命名项目</span>
+        <span>{t('statusBar.unnamedProject')}</span>
         <span className="text-border">|</span>
-        <span>未保存更改</span>
+        <span>{t('statusBar.unsaved')}</span>
       </div>
 
       {/* 右侧：网络 + 会员 */}
       <div className="flex items-center gap-3">
+        <LanguageToggle />
         <div className="flex items-center gap-1">
           <Wifi size={10} />
-          <span>已连接</span>
+          <span>{t('statusBar.connected')}</span>
         </div>
         {isAuthenticated && user ? (
           <div className="flex items-center gap-1">
@@ -39,7 +60,7 @@ export function StatusBar() {
             </span>
           </div>
         ) : (
-          <span>访客模式</span>
+          <span>{t('statusBar.guest')}</span>
         )}
       </div>
     </footer>

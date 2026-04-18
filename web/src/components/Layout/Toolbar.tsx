@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Zap, FolderOpen, Save, Download, Settings, User, Menu, LogOut } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useUIStore, useAuthStore, useProjectStore } from '@stores';
 import { AuthModal } from '@components/AuthModal';
 
 export function Toolbar() {
+  const { t } = useTranslation();
   const { toggleLeftPanel, toggleRightPanel } = useUIStore();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [showAuth, setShowAuth] = useState(false);
@@ -16,8 +18,8 @@ export function Toolbar() {
           <button
             onClick={toggleLeftPanel}
             className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-sidebar-hover transition-colors"
-            title="切换 AI 面板"
-            aria-label="切换 AI 面板"
+            title={t('toolbar.toggleLeft')}
+            aria-label={t('toolbar.toggleLeft')}
             type="button"
           >
             <Menu size={18} />
@@ -26,7 +28,7 @@ export function Toolbar() {
           <div className="flex items-center gap-1.5 ml-1">
             <Zap size={20} className="text-accent" />
             <span className="font-semibold text-text-primary text-sm tracking-tight">
-              PanicStudio
+              PLC-AIStudio
             </span>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-medium">
               BETA
@@ -36,21 +38,21 @@ export function Toolbar() {
 
         {/* 中间：核心操作 */}
         <div className="flex items-center gap-1">
-          <ToolbarButton icon={<FolderOpen size={16} />} label="打开" />
-          <ToolbarButton icon={<Save size={16} />} label="保存" />
+          <ToolbarButton icon={<FolderOpen size={16} />} label={t('toolbar.open')} />
+          <ToolbarButton icon={<Save size={16} />} label={t('toolbar.save')} />
           <div className="w-px h-5 bg-border mx-1" />
           <ExportButton />
         </div>
 
         {/* 右侧：设置 + 用户 */}
         <div className="flex items-center gap-1">
-          <ToolbarButton icon={<Settings size={16} />} label="设置" />
+          <ToolbarButton icon={<Settings size={16} />} label={t('toolbar.settings')} />
           <div className="w-px h-5 bg-border mx-1" />
           <button
             onClick={toggleRightPanel}
             className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-sidebar-hover transition-colors"
-            title="切换项目面板"
-            aria-label="切换项目面板"
+            title={t('toolbar.toggleRight')}
+            aria-label={t('toolbar.toggleRight')}
             type="button"
           >
             <Menu size={18} />
@@ -67,8 +69,8 @@ export function Toolbar() {
               <button
                 onClick={logout}
                 className="p-1.5 rounded-md text-text-muted hover:text-error hover:bg-error/10 transition-colors"
-                title="退出登录"
-                aria-label="退出登录"
+                title={t('toolbar.logout')}
+                aria-label={t('toolbar.logout')}
                 type="button"
               >
                 <LogOut size={14} />
@@ -80,7 +82,7 @@ export function Toolbar() {
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-sidebar-hover transition-colors"
             >
               <User size={16} />
-              <span className="text-xs">登录</span>
+              <span className="text-xs">{t('auth.login')}</span>
             </button>
           )}
         </div>
@@ -142,7 +144,7 @@ function ExportButton() {
       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-accent/10 text-accent hover:bg-accent/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
     >
       <Download size={16} />
-      <span>导出 .st</span>
+      <span>{t('toolbar.exportSt')}</span>
     </button>
   );
 }

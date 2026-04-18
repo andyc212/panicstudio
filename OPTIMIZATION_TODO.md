@@ -1,4 +1,4 @@
-# PanicStudio UX Optimization Roadmap
+# PLC-AIStudio UX Optimization Roadmap
 
 > **Rule**: Every completed item must have a `CHANGELOG.md` entry and passing tests.
 

@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { prisma } from '../lib/prisma';
-import { streamChatCompletion, buildPromptFromForm } from '../services/kimiService';
+import { streamChatCompletion, buildPromptFromForm, KimiMessage } from '../services/kimiService';
 
 const router = Router();
 
 // POST /api/ai/generate
 // Stream SSE response
+// Supports both guided mode (formData) and chat mode (messages)
 router.post('/generate', authMiddleware, async (req: AuthRequest, res) => {
   console.log('[AI] Generate request received');
   const userId = req.user!.id;
@@ -31,27 +32,43 @@ router.post('/generate', authMiddleware, async (req: AuthRequest, res) => {
       return;
     }
 
-    const { formData } = req.body;
-    if (!formData) {
-      res.status(400).json({ error: 'formData is required' });
+    const { formData, messages } = req.body;
+
+    let chatMessages: KimiMessage[];
+    let model: string;
+    let maxTokens: number;
+    let promptForLogging: string;
+
+    if (messages && Array.isArray(messages)) {
+      // Chat mode
+      chatMessages = messages.map((m: any) => ({
+        role: m.role,
+        content: m.content,
+      })) as KimiMessage[];
+      model = 'moonshot-v1-32k';
+      maxTokens = 8192;
+      promptForLogging = messages.map((m: any) => m.content).join('\n');
+    } else if (formData) {
+      // Guided mode
+      const promptResult = buildPromptFromForm(formData);
+      model = promptResult.model;
+      maxTokens = promptResult.maxTokens;
+      promptForLogging = promptResult.prompt;
+      chatMessages = [{ role: 'user' as const, content: promptResult.prompt }];
+    } else {
+      res.status(400).json({ error: 'formData or messages is required' });
       return;
     }
-
-    const prompt = buildPromptFromForm(formData);
 
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const messages = [
-      { role: 'user' as const, content: prompt },
-    ];
-
     let fullResponse = '';
 
     try {
-      for await (const chunk of streamChatCompletion(messages)) {
+      for await (const chunk of streamChatCompletion(chatMessages, { model, maxTokens })) {
         fullResponse += chunk;
         res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
       }
@@ -66,12 +83,13 @@ router.post('/generate', authMiddleware, async (req: AuthRequest, res) => {
       await prisma.aILog.create({
         data: {
           userId,
-          promptTokens: Math.ceil(prompt.length / 4),
+          promptTokens: Math.ceil(promptForLogging.length / 4),
           completionTokens: Math.ceil(fullResponse.length / 4),
+          model,
         },
       });
 
-      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'done', model })}\n\n`);
       res.end();
     } catch (streamErr) {
       console.error('Kimi stream error:', streamErr);

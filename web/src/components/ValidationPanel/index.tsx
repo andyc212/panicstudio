@@ -3,6 +3,7 @@ import { useUIStore } from '@stores';
 import { validateSTCode, getScoreColor, getScoreLabel, downloadValidationLog } from '@services/parser/stValidator';
 import type { ValidationIssue, ValidationResult } from '@services/parser/stValidator';
 import { AlertCircle, AlertTriangle, Info, CheckCircle, ChevronDown, ChevronUp, Download, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ValidationPanelProps {
   code: string;
@@ -13,6 +14,7 @@ interface ValidationPanelProps {
 }
 
 export function ValidationPanel({ code, codeName, plcModel, declaredIO, requiredSafetyConditions }: ValidationPanelProps) {
+  const { t } = useTranslation();
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(false);
   const [exportFormat, setExportFormat] = useState<'json' | 'csv'>('json');
@@ -60,23 +62,23 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
           ) : (
             <AlertCircle size={14} className="text-error" />
           )}
-          <span className="text-xs font-medium text-text-primary">代码验证</span>
+          <span className="text-xs font-medium text-text-primary">{t('validation.title')}</span>
           <span
             className="text-[10px] px-1.5 py-0.5 rounded font-bold"
             style={{ backgroundColor: `${scoreColor}20`, color: scoreColor }}
           >
-            {result.score}分 · {scoreLabel}
+            {result.score} · {scoreLabel}
           </span>
         </div>
         <div className="flex items-center gap-2">
           {result.summary.errors > 0 && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-error/10 text-error">
-              {result.summary.errors} 错误
+              {result.summary.errors} {t('validation.errors')}
             </span>
           )}
           {result.summary.warnings > 0 && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning/10 text-warning">
-              {result.summary.warnings} 警告
+              {result.summary.warnings} {t('validation.warnings')}
             </span>
           )}
           {/* Export dropdown */}
@@ -84,14 +86,14 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
             <button
               onClick={(e) => { e.stopPropagation(); setShowExportMenu(!showExportMenu); }}
               className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-sidebar-active text-text-muted hover:text-text-primary transition-colors"
-              title="导出验证日志"
+              title={t('validation.exportLog')}
             >
               <Download size={12} />
-              <span className="text-[10px]">导出</span>
+              <span className="text-[10px]">{t('validation.exportLog')}</span>
             </button>
             {showExportMenu && (
               <div className="absolute right-0 top-full mt-1 z-20 w-32 rounded-md border border-border bg-base shadow-lg overflow-hidden">
-                <div className="px-2 py-1 text-[10px] text-text-muted border-b border-border/50">格式</div>
+                <div className="px-2 py-1 text-[10px] text-text-muted border-b border-border/50">{t('validation.format')}</div>
                 <button
                   onClick={(e) => { e.stopPropagation(); setExportFormat('json'); }}
                   className={`w-full px-2 py-1 text-[11px] text-left transition-colors ${exportFormat === 'json' ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:bg-sidebar-hover'}`}
@@ -109,7 +111,7 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
                     onClick={(e) => { e.stopPropagation(); handleExport(); }}
                     className="w-full py-1 rounded bg-accent/10 text-accent text-[11px] hover:bg-accent/20 transition-colors"
                   >
-                    下载
+                    {t('validation.download')}
                   </button>
                 </div>
               </div>
@@ -122,11 +124,11 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
       {/* Dimensions */}
       {isExpanded && result.dimensions && (
         <div className="px-3 py-2 border-b border-border/50 bg-sidebar-hover/30">
-          <div className="text-[10px] text-text-muted mb-1.5">多维度评分</div>
+          <div className="text-[10px] text-text-muted mb-1.5">{t('validation.dimensions')}</div>
           <div className="space-y-1.5">
             {result.dimensions.map((dim) => (
               <div key={dim.name} className="flex items-center gap-2">
-                <span className="text-[10px] text-text-secondary w-20 shrink-0">{dim.label}</span>
+                <span className="text-[10px] text-text-secondary w-20 shrink-0">{t(`validation.dim${dim.name.charAt(0).toUpperCase() + dim.name.slice(1)}` as any) || dim.label}</span>
                 <div className="flex-1 h-1.5 rounded-full bg-sidebar-active overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all"
@@ -149,7 +151,7 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
           {result.issues.length === 0 ? (
             <div className="px-3 py-4 text-center">
               <CheckCircle size={24} className="mx-auto mb-1 text-success" />
-              <p className="text-xs text-text-secondary">代码检查通过，未发现明显问题</p>
+              <p className="text-xs text-text-secondary">{t('validation.passed')}</p>
             </div>
           ) : (
             <div className="divide-y divide-border/50">
@@ -170,6 +172,7 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
 }
 
 function IssueItem({ issue, isExpanded, onToggle }: { issue: ValidationIssue; isExpanded: boolean; onToggle: () => void }) {
+  const { t } = useTranslation();
   const jumpToLine = useUIStore((s) => s.jumpToLine);
   const iconMap = {
     error: <AlertCircle size={13} className="text-error shrink-0 mt-0.5" />,
@@ -178,10 +181,10 @@ function IssueItem({ issue, isExpanded, onToggle }: { issue: ValidationIssue; is
   };
 
   const categoryLabels: Record<string, string> = {
-    syntax: '语法',
-    io: 'I/O',
-    safety: '安全',
-    structure: '结构',
+    syntax: t('validation.categories.syntax'),
+    io: t('validation.categories.io'),
+    safety: t('validation.categories.safety'),
+    structure: t('validation.categories.structure'),
   };
 
   return (
@@ -195,13 +198,13 @@ function IssueItem({ issue, isExpanded, onToggle }: { issue: ValidationIssue; is
                 {categoryLabels[issue.category] || issue.category}
               </span>
               {issue.line && (
-                <span className="text-[10px] text-text-muted">第 {issue.line} 行</span>
+                <span className="text-[10px] text-text-muted">{t('validation.jumpToLine', { line: issue.line })}</span>
               )}
             </div>
             <p className="text-[11px] text-text-secondary mt-0.5">{issue.message}</p>
             {isExpanded && issue.suggestion && (
               <p className="text-[10px] text-text-muted mt-1 pl-2 border-l-2 border-accent/30">
-                建议：{issue.suggestion}
+                {t('validation.suggestion')}：{issue.suggestion}
               </p>
             )}
           </div>
@@ -210,7 +213,7 @@ function IssueItem({ issue, isExpanded, onToggle }: { issue: ValidationIssue; is
           <button
             onClick={() => jumpToLine(issue.line!)}
             className="shrink-0 inline-flex items-center gap-0.5 text-[10px] text-accent hover:text-accent-light hover:underline transition-colors mt-0.5"
-            title={`跳转到第 ${issue.line} 行`}
+            title={t('validation.jumpToLine', { line: issue.line })}
             type="button"
           >
             <ArrowRight size={9} />

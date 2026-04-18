@@ -4,18 +4,19 @@ import {
   Folder, FileCode, Plus, ChevronRight, ChevronDown,
   Copy, Trash2, Edit3, MoreVertical, CheckCircle, AlertTriangle,
 } from 'lucide-react';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { POU } from '@types';
-
-const typeLabels: Record<string, string> = {
-  PROGRAM: '程序',
-  FUNCTION_BLOCK: '功能块',
-  FUNCTION: '函数',
-};
 
 const typeOrder = ['PROGRAM', 'FUNCTION_BLOCK', 'FUNCTION'];
 
 export function ProjectTree() {
+  const { t } = useTranslation();
+  const typeLabels = useMemo(() => ({
+    PROGRAM: t('projectTree.program'),
+    FUNCTION_BLOCK: t('projectTree.functionBlock'),
+    FUNCTION: t('projectTree.function'),
+  }), [t]);
   const {
     currentProject,
     selectedPouId,
@@ -69,10 +70,10 @@ export function ProjectTree() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-base-light">
-        <span className="text-xs font-medium text-text-secondary">项目</span>
+        <span className="text-xs font-medium text-text-secondary">{t('projectTree.title')}</span>
         <button
           className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors"
-          aria-label="新建 POU"
+          aria-label={t('projectTree.newPou')}
           type="button"
         >
           <Plus size={14} />
@@ -99,7 +100,7 @@ export function ProjectTree() {
                 {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                 <span className="text-[11px]">POUs</span>
                 <span className="text-[10px] text-text-muted ml-1">
-                  {currentProject.poUs.length}
+                  {t('projectTree.pouCount', { count: currentProject.poUs.length })}
                 </span>
               </button>
 
@@ -141,8 +142,8 @@ export function ProjectTree() {
           </div>
         ) : (
           <div className="text-center text-text-muted text-xs mt-4">
-            <p>暂无项目</p>
-            <p className="text-[10px] mt-1">点击上方 + 新建项目</p>
+            <p>{t('projectTree.noProject')}</p>
+            <p className="text-[10px] mt-1">{t('projectTree.newProjectHint')}</p>
           </div>
         )}
       </div>
@@ -156,7 +157,7 @@ export function ProjectTree() {
         >
           <ContextMenuItem
             icon={<Edit3 size={12} />}
-            label="重命名"
+            label={t('projectTree.rename')}
             onClick={() => {
               const pou = currentProject?.poUs.find((p) => p.id === contextMenu.pouId);
               if (pou) {
@@ -168,7 +169,7 @@ export function ProjectTree() {
           />
           <ContextMenuItem
             icon={<Copy size={12} />}
-            label="复制"
+            label={t('projectTree.duplicate')}
             onClick={() => {
               duplicatePou(contextMenu.pouId);
               setContextMenu(null);
@@ -177,7 +178,7 @@ export function ProjectTree() {
           <div className="border-t border-border/50" />
           <ContextMenuItem
             icon={<Trash2 size={12} className="text-error" />}
-            label="删除"
+            label={t('projectTree.delete')}
             danger
             onClick={() => {
               removePou(contextMenu.pouId);
@@ -257,7 +258,7 @@ function PouItem({
 
       {/* Badges */}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <span className="text-[9px] text-text-muted">{lineCount}L</span>
+        <span className="text-[9px] text-text-muted">{t('projectTree.lineCount', { count: lineCount })}</span>
         {validation.passed ? (
           <CheckCircle size={10} className="text-success" />
         ) : (

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useProjectStore, useUIStore } from '@stores';
 import { Search, Command, FileCode, Hash, Zap, X, PanelLeft, PanelRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface PaletteItem {
   id: string;
@@ -12,6 +13,7 @@ interface PaletteItem {
 }
 
 export function CommandPalette() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -53,27 +55,27 @@ export function CommandPalette() {
     const commands: PaletteItem[] = [
       {
         id: 'cmd-toggle-left',
-        label: '切换左侧面板',
-        subtitle: '折叠 / 展开 AI 面板',
+        label: t('commandPalette.toggleLeft'),
+        subtitle: t('commandPalette.toggleLeftDesc'),
         icon: <PanelLeft size={14} />,
         action: () => { toggleLeftPanel(); setOpen(false); },
         type: 'command',
       },
       {
         id: 'cmd-toggle-right',
-        label: '切换右侧面板',
-        subtitle: '折叠 / 展开项目面板',
+        label: t('commandPalette.toggleRight'),
+        subtitle: t('commandPalette.toggleRightDesc'),
         icon: <PanelRight size={14} />,
         action: () => { toggleRightPanel(); setOpen(false); },
         type: 'command',
       },
       {
         id: 'cmd-export-project',
-        label: '导出项目',
-        subtitle: '将所有 POU 打包为 .zip',
+        label: t('commandPalette.exportProject'),
+        subtitle: t('commandPalette.exportProjectDesc'),
         icon: <Zap size={14} />,
         action: () => {
-          alert('导出功能开发中');
+          alert(t('commandPalette.exportDev'));
           setOpen(false);
         },
         type: 'command',
@@ -110,7 +112,7 @@ export function CommandPalette() {
             all.push({
               id: `var-${pou.id}-${v.name}`,
               label: v.name,
-              subtitle: `${v.address || '无地址'} \u00b7 ${pou.name}`,
+              subtitle: `${v.address || t('commandPalette.noAddress')} \u00b7 ${pou.name}`,
               icon: <Hash size={14} />,
               action: () => { selectPou(pou.id); setOpen(false); },
               type: 'var',
@@ -150,14 +152,14 @@ export function CommandPalette() {
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
             onKeyDown={handleKeyDown}
-            placeholder="搜索命令、POU、变量…  (Ctrl+K)"
+            placeholder={t('commandPalette.placeholder')}
             className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted outline-none"
           />
           <button
             onClick={() => setOpen(false)}
             className="p-1 rounded hover:bg-sidebar-hover text-text-muted"
             type="button"
-            aria-label="关闭"
+            aria-label={t('commandPalette.close')}
           >
             <X size={14} />
           </button>
@@ -166,10 +168,10 @@ export function CommandPalette() {
         {/* Hints */}
         {!query && (
           <div className="flex items-center gap-3 px-3 py-1.5 border-b border-border/50 bg-sidebar-hover/50">
-            <span className="text-[10px] text-text-muted">前缀过滤:</span>
-            <span className="text-[10px] text-text-secondary"><kbd className="px-1 rounded bg-sidebar-active">@</kbd> POU</span>
-            <span className="text-[10px] text-text-secondary"><kbd className="px-1 rounded bg-sidebar-active">#</kbd> 变量</span>
-            <span className="text-[10px] text-text-secondary"><kbd className="px-1 rounded bg-sidebar-active">&gt;</kbd> 命令</span>
+            <span className="text-[10px] text-text-muted">{t('commandPalette.prefixHint')}</span>
+            <span className="text-[10px] text-text-secondary"><kbd className="px-1 rounded bg-sidebar-active">@</kbd> {t('commandPalette.prefixPou')}</span>
+            <span className="text-[10px] text-text-secondary"><kbd className="px-1 rounded bg-sidebar-active">#</kbd> {t('commandPalette.prefixVar')}</span>
+            <span className="text-[10px] text-text-secondary"><kbd className="px-1 rounded bg-sidebar-active">&gt;</kbd> {t('commandPalette.prefixCmd')}</span>
           </div>
         )}
 
@@ -177,7 +179,7 @@ export function CommandPalette() {
         <div className="max-h-[50vh] overflow-y-auto">
           {items.length === 0 ? (
             <div className="px-3 py-6 text-center text-text-muted text-sm">
-              未找到结果
+              {t('commandPalette.noResults')}
             </div>
           ) : (
             <div className="py-1">
@@ -210,12 +212,12 @@ export function CommandPalette() {
         {/* Footer */}
         <div className="flex items-center justify-between px-3 py-1 border-t border-border bg-sidebar-hover/50">
           <div className="flex items-center gap-2 text-[10px] text-text-muted">
-            <span>{items.length} 结果</span>
+            <span>{t('commandPalette.results', { count: items.length })}</span>
           </div>
           <div className="flex items-center gap-2 text-[10px] text-text-muted">
-            <span><kbd className="px-1 rounded bg-sidebar-active">↑↓</kbd> 选择</span>
-            <span><kbd className="px-1 rounded bg-sidebar-active">Enter</kbd> 确认</span>
-            <span><kbd className="px-1 rounded bg-sidebar-active">Esc</kbd> 关闭</span>
+            <span><kbd className="px-1 rounded bg-sidebar-active">↑↓</kbd> {t('commandPalette.select')}</span>
+            <span><kbd className="px-1 rounded bg-sidebar-active">Enter</kbd> {t('commandPalette.confirm')}</span>
+            <span><kbd className="px-1 rounded bg-sidebar-active">Esc</kbd> {t('commandPalette.close')}</span>
           </div>
         </div>
       </div>

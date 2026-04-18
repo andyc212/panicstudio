@@ -1,4 +1,4 @@
-# PanicStudio Bug Fix Log
+# PLC-AIStudio Bug Fix Log
 
 > 记录部署和优化过程中发现的所有问题、根因分析和修复方案。
 
