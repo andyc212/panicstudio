@@ -53,7 +53,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <Zap size={20} className="text-accent" />
             <span className="font-semibold text-text-primary">{mode === 'login' ? '登录' : '注册'}</span>
           </div>
-          <button onClick={onClose} className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors">
+          <button onClick={onClose} className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors" aria-label="关闭" type="button">
             <X size={16} />
           </button>
         </div>
@@ -99,6 +99,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+                aria-label={showPassword ? '隐藏密码' : '显示密码'}
               >
                 {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>

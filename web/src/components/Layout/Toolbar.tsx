@@ -17,6 +17,8 @@ export function Toolbar() {
             onClick={toggleLeftPanel}
             className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-sidebar-hover transition-colors"
             title="切换 AI 面板"
+            aria-label="切换 AI 面板"
+            type="button"
           >
             <Menu size={18} />
           </button>
@@ -48,6 +50,8 @@ export function Toolbar() {
             onClick={toggleRightPanel}
             className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-sidebar-hover transition-colors"
             title="切换项目面板"
+            aria-label="切换项目面板"
+            type="button"
           >
             <Menu size={18} />
           </button>
@@ -64,6 +68,8 @@ export function Toolbar() {
                 onClick={logout}
                 className="p-1.5 rounded-md text-text-muted hover:text-error hover:bg-error/10 transition-colors"
                 title="退出登录"
+                aria-label="退出登录"
+                type="button"
               >
                 <LogOut size={14} />
               </button>
@@ -102,7 +108,7 @@ function ToolbarButton({
       : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-hover';
 
   return (
-    <button className={`${baseClasses} ${variantClasses}`}>
+    <button className={`${baseClasses} ${variantClasses}`} type="button">
       {icon}
       <span>{label}</span>
     </button>
@@ -132,6 +138,7 @@ function ExportButton() {
     <button
       onClick={handleExport}
       disabled={!selectedPou}
+      type="button"
       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-accent/10 text-accent hover:bg-accent/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
     >
       <Download size={16} />

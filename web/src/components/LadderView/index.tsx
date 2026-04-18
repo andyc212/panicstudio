@@ -49,6 +49,8 @@ export function LadderView() {
           <button
             className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors"
             onClick={() => setZoom(z => Math.max(z / 1.2, 0.5))}
+            aria-label="缩小"
+            type="button"
           >
             <ZoomOut size={12} />
           </button>
@@ -56,11 +58,13 @@ export function LadderView() {
           <button
             className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors"
             onClick={() => setZoom(z => Math.min(z * 1.2, 3))}
+            aria-label="放大"
+            type="button"
           >
             <ZoomIn size={12} />
           </button>
           <div className="w-px h-3 bg-border mx-1" />
-          <button className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors">
+          <button className="p-1 rounded hover:bg-sidebar-hover text-text-muted hover:text-text-primary transition-colors" aria-label="重置视图" type="button">
             <RefreshCw size={12} />
           </button>
         </div>
@@ -165,8 +169,22 @@ function renderElement(
       jumpToLine(el.sourceLine);
     }
   };
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.key === 'Enter' || e.key === ' ') && jumpToLine && el.sourceLine) {
+      e.preventDefault();
+      jumpToLine(el.sourceLine);
+    }
+  };
   const clickable = !!jumpToLine && !!el.sourceLine;
   const hoverStyle = clickable ? { cursor: 'pointer' } : undefined;
+  const a11yProps = clickable
+    ? {
+        tabIndex: 0 as const,
+        role: 'button' as const,
+        'aria-label': `${el.label || '元素'} — 第 ${el.sourceLine} 行`,
+        onKeyDown: handleKeyDown,
+      }
+    : {};
   const cx = el.x + el.width / 2;
   const cy = el.type === 'verticalLine' || el.type === 'horizontalLine' ? busY : el.y + el.height / 2;
   const leftX = isFirst ? 15 : el.x - 10;
@@ -175,7 +193,7 @@ function renderElement(
   switch (el.type) {
     case 'contactNO':
       return (
-        <g key={el.id} onClick={handleClick} style={hoverStyle}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle} {...a11yProps}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="none" stroke={colors.contactNO} strokeWidth="1.5" rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
@@ -185,7 +203,7 @@ function renderElement(
 
     case 'contactNC':
       return (
-        <g key={el.id} onClick={handleClick} style={hoverStyle}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle} {...a11yProps}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="none" stroke={colors.contactNC} strokeWidth="1.5" rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <line x1={el.x + 4} y1={el.y + 4} x2={el.x + el.width - 4} y2={el.y + el.height - 4} stroke={colors.contactNC} strokeWidth="1" />
@@ -196,7 +214,7 @@ function renderElement(
 
     case 'coil':
       return (
-        <g key={el.id} onClick={handleClick} style={hoverStyle}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle} {...a11yProps}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coil} strokeWidth="1.5" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
@@ -206,7 +224,7 @@ function renderElement(
 
     case 'coilSet':
       return (
-        <g key={el.id} onClick={handleClick} style={hoverStyle}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle} {...a11yProps}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coilSet} strokeWidth="1.5" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <text x={cx} y={cy + 3} textAnchor="middle" fill={colors.coilSet} style={{ fontSize: '10px', fontWeight: 'bold' }}>S</text>
@@ -217,7 +235,7 @@ function renderElement(
 
     case 'coilReset':
       return (
-        <g key={el.id} onClick={handleClick} style={hoverStyle}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle} {...a11yProps}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coilReset} strokeWidth="1.5" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <text x={cx} y={cy + 3} textAnchor="middle" fill={colors.coilReset} style={{ fontSize: '10px', fontWeight: 'bold' }}>R</text>
@@ -228,7 +246,7 @@ function renderElement(
 
     case 'timerTON':
       return (
-        <g key={el.id} onClick={handleClick} style={hoverStyle}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle} {...a11yProps}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#1e1e2e" stroke={colors.timerTON} strokeWidth="1.5" rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <text x={cx} y={cy - 4} textAnchor="middle" fill={colors.timerTON} style={{ fontSize: '9px', fontWeight: 'bold' }}>TON</text>
@@ -240,7 +258,7 @@ function renderElement(
 
     case 'counterCTU':
       return (
-        <g key={el.id} onClick={handleClick} style={hoverStyle}>
+        <g key={el.id} onClick={handleClick} style={hoverStyle} {...a11yProps}>
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#1e1e2e" stroke={colors.counterCTU} strokeWidth="1.5" rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <text x={cx} y={cy - 4} textAnchor="middle" fill={colors.counterCTU} style={{ fontSize: '9px', fontWeight: 'bold' }}>CTU</text>
