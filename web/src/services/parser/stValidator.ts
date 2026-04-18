@@ -12,6 +12,12 @@ export interface ValidationIssue {
   suggestion?: string;
 }
 
+export interface ValidationDimension {
+  name: string;
+  score: number; // 0-100
+  label: string;
+}
+
 export interface ValidationResult {
   passed: boolean;
   score: number; // 0-100
@@ -21,6 +27,7 @@ export interface ValidationResult {
     warnings: number;
     infos: number;
   };
+  dimensions: ValidationDimension[];
 }
 
 export interface ValidationContext {
@@ -267,11 +274,38 @@ export function validateSTCode(code: string, context?: ValidationContext): Valid
   score -= infos * 2;
   score = Math.max(0, Math.min(100, score));
 
+  // === 6. 多维度评分 ===
+  const syntaxIssues = issues.filter((i) => i.category === 'syntax');
+  const ioIssues = issues.filter((i) => i.category === 'io');
+  const safetyIssues = issues.filter((i) => i.category === 'safety');
+  const structIssues = issues.filter((i) => i.category === 'structure');
+
+  const calcDimScore = (issueList: ValidationIssue[]) => {
+    let s = 100;
+    s -= issueList.filter((i) => i.severity === 'error').length * 30;
+    s -= issueList.filter((i) => i.severity === 'warning').length * 15;
+    s -= issueList.filter((i) => i.severity === 'info').length * 5;
+    return Math.max(0, Math.min(100, s));
+  };
+
+  // Complexity score: inverse of code length (shorter = simpler = better, but not too short)
+  const lineCount = lines.length;
+  const complexityScore = lineCount < 10 ? 60 : lineCount > 200 ? 60 : 100 - Math.abs(lineCount - 50) / 2;
+
+  const dimensions: ValidationDimension[] = [
+    { name: 'syntax', score: calcDimScore(syntaxIssues), label: '语法正确性' },
+    { name: 'io', score: calcDimScore(ioIssues), label: 'I/O 覆盖率' },
+    { name: 'safety', score: calcDimScore(safetyIssues), label: '安全条件满足度' },
+    { name: 'complexity', score: Math.round(complexityScore), label: '代码复杂度' },
+    { name: 'structure', score: calcDimScore(structIssues), label: '结构完整性' },
+  ];
+
   return {
     passed: errors === 0,
     score,
     issues,
     summary: { errors, warnings, infos },
+    dimensions,
   };
 }
 

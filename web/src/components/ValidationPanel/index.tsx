@@ -119,6 +119,30 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
         </div>
       </button>
 
+      {/* Dimensions */}
+      {isExpanded && result.dimensions && (
+        <div className="px-3 py-2 border-b border-border/50 bg-sidebar-hover/30">
+          <div className="text-[10px] text-text-muted mb-1.5">多维度评分</div>
+          <div className="space-y-1.5">
+            {result.dimensions.map((dim) => (
+              <div key={dim.name} className="flex items-center gap-2">
+                <span className="text-[10px] text-text-secondary w-20 shrink-0">{dim.label}</span>
+                <div className="flex-1 h-1.5 rounded-full bg-sidebar-active overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${dim.score}%`,
+                      backgroundColor: getScoreColor(dim.score),
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-text-muted w-6 text-right">{dim.score}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Issues List */}
       {isExpanded && (
         <div className="max-h-48 overflow-y-auto">
