@@ -4,15 +4,18 @@ import { STEditor } from '@components/Editor';
 import { LadderView } from '@components/LadderView';
 import { ProjectTree } from '@components/ProjectTree';
 import { VarTable } from '@components/VarTable';
+import { CommandPalette } from '@components/CommandPalette';
 import { useUIStore } from '@stores';
 
 function App() {
   const { editorSplitRatio, setEditorSplitRatio, rightPanelSplitRatio, setRightPanelSplitRatio } = useUIStore();
 
   return (
-    <AppLayout
-      leftPanel={<ChatPanel />}
-      centerPanel={
+    <>
+      <CommandPalette />
+      <AppLayout
+        leftPanel={<ChatPanel />}
+        centerPanel={
         <div className="flex flex-col h-full">
           <div className="flex flex-col" style={{ height: `${editorSplitRatio * 100}%`, minHeight: '160px' }}>
             <STEditor />
@@ -78,7 +81,8 @@ function App() {
           </div>
         </div>
       }
-    />
+      />
+    </>
   );
 }
 
