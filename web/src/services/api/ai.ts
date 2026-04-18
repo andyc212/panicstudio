@@ -27,18 +27,35 @@ export async function* streamAIGeneration(formData: AIGenerationForm) {
     if (done) break;
 
     buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n\n');
-    buffer = lines.pop() || '';
 
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('data: ')) {
+    // 查找完整的 SSE 消息边界 (\n\n)
+    let boundary = buffer.indexOf('\n\n');
+    while (boundary !== -1) {
+      const message = buffer.slice(0, boundary).trim();
+      buffer = buffer.slice(boundary + 2);
+
+      if (message.startsWith('data: ')) {
         try {
-          const data = JSON.parse(trimmed.slice(6));
+          const data = JSON.parse(message.slice(6));
           yield data;
         } catch {
           // Ignore malformed JSON
         }
+      }
+
+      boundary = buffer.indexOf('\n\n');
+    }
+  }
+
+  // 处理最后剩余的数据（如果没有 \n\n 结尾）
+  if (buffer.trim()) {
+    const message = buffer.trim();
+    if (message.startsWith('data: ')) {
+      try {
+        const data = JSON.parse(message.slice(6));
+        yield data;
+      } catch {
+        // Ignore malformed JSON
       }
     }
   }
