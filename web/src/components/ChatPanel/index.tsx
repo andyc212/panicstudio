@@ -388,6 +388,8 @@ function GuidedMode() {
       {generatedCode && (
         <ValidationPanel
           code={generatedCode}
+          codeName={currentProject?.name || scenario}
+          plcModel={currentProject?.plcModel}
           declaredIO={ioList.filter((io) => io.address).map((io) => ({ address: io.address, name: io.name || io.address, type: io.type as 'INPUT' | 'OUTPUT' }))}
           requiredSafetyConditions={safetyConditions.filter((s) => s.enabled).map((s) => s.description)}
         />

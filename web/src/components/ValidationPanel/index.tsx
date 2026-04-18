@@ -1,17 +1,21 @@
 import { useMemo, useState } from 'react';
-import { validateSTCode, getScoreColor, getScoreLabel } from '@services/parser/stValidator';
-import type { ValidationIssue } from '@services/parser/stValidator';
-import { AlertCircle, AlertTriangle, Info, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { validateSTCode, getScoreColor, getScoreLabel, downloadValidationLog } from '@services/parser/stValidator';
+import type { ValidationIssue, ValidationResult } from '@services/parser/stValidator';
+import { AlertCircle, AlertTriangle, Info, CheckCircle, ChevronDown, ChevronUp, Download } from 'lucide-react';
 
 interface ValidationPanelProps {
   code: string;
+  codeName?: string;
+  plcModel?: string;
   declaredIO?: Array<{ address: string; name: string; type: 'INPUT' | 'OUTPUT' }>;
   requiredSafetyConditions?: string[];
 }
 
-export function ValidationPanel({ code, declaredIO, requiredSafetyConditions }: ValidationPanelProps) {
+export function ValidationPanel({ code, codeName, plcModel, declaredIO, requiredSafetyConditions }: ValidationPanelProps) {
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(true);
+  const [exportFormat, setExportFormat] = useState<'json' | 'csv'>('json');
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const result = useMemo(() => {
     if (!code || code.length < 10) return null;
@@ -28,6 +32,15 @@ export function ValidationPanel({ code, declaredIO, requiredSafetyConditions }: 
     if (newSet.has(id)) newSet.delete(id);
     else newSet.add(id);
     setExpandedIssues(newSet);
+  };
+
+  const handleExport = () => {
+    downloadValidationLog(result, exportFormat, {
+      codeName: codeName || 'Generated_Program',
+      codeLength: code.length,
+      plcModel,
+    });
+    setShowExportMenu(false);
   };
 
   const scoreColor = getScoreColor(result.score);
@@ -65,6 +78,42 @@ export function ValidationPanel({ code, declaredIO, requiredSafetyConditions }: 
               {result.summary.warnings} 警告
             </span>
           )}
+          {/* Export dropdown */}
+          <div className="relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowExportMenu(!showExportMenu); }}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-sidebar-active text-text-muted hover:text-text-primary transition-colors"
+              title="导出验证日志"
+            >
+              <Download size={12} />
+              <span className="text-[10px]">导出</span>
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 top-full mt-1 z-20 w-32 rounded-md border border-border bg-base shadow-lg overflow-hidden">
+                <div className="px-2 py-1 text-[10px] text-text-muted border-b border-border/50">格式</div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setExportFormat('json'); }}
+                  className={`w-full px-2 py-1 text-[11px] text-left transition-colors ${exportFormat === 'json' ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:bg-sidebar-hover'}`}
+                >
+                  JSON
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setExportFormat('csv'); }}
+                  className={`w-full px-2 py-1 text-[11px] text-left transition-colors ${exportFormat === 'csv' ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:bg-sidebar-hover'}`}
+                >
+                  CSV
+                </button>
+                <div className="border-t border-border/50 px-2 py-1">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleExport(); }}
+                    className="w-full py-1 rounded bg-accent/10 text-accent text-[11px] hover:bg-accent/20 transition-colors"
+                  >
+                    下载
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           {isExpanded ? <ChevronUp size={14} className="text-text-muted" /> : <ChevronDown size={14} className="text-text-muted" />}
         </div>
       </button>

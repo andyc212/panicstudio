@@ -77,21 +77,21 @@ export function LadderView() {
             >
             {rungs.map((rung, ri) => {
               const rowY = ri * 100 + 15;
-              const busY = rowY + 40;
+              const busY = 40; // relative to rowY transform
 
               return (
-                <g key={rung.id}>
+                <g key={rung.id} transform={`translate(0, ${rowY})`}>
                   {/* Network title */}
-                  <text x="5" y={rowY + 10} className="fill-text-muted" style={{ fontSize: '9px' }}>
+                  <text x="5" y={10} className="fill-text-muted" style={{ fontSize: '9px' }}>
                     {rung.title}
                   </text>
 
                   {/* Left rail */}
                   <line
                     x1="15"
-                    y1={rowY + 20}
+                    y1={15}
                     x2="15"
-                    y2={rowY + 60}
+                    y2={85}
                     stroke={ELEMENT_COLORS.leftRail}
                     strokeWidth="2"
                   />
@@ -115,9 +115,9 @@ export function LadderView() {
                   {/* Right rail */}
                   <line
                     x1={maxWidth - 15}
-                    y1={rowY + 20}
+                    y1={15}
                     x2={maxWidth - 15}
-                    y2={rowY + 60}
+                    y2={85}
                     stroke={ELEMENT_COLORS.rightRail}
                     strokeWidth="2"
                   />
@@ -159,7 +159,7 @@ function renderElement(
   rightRailX: number
 ) {
   const cx = el.x + el.width / 2;
-  const cy = busY;
+  const cy = el.type === 'verticalLine' || el.type === 'horizontalLine' ? busY : el.y + el.height / 2;
   const leftX = isFirst ? 15 : el.x - 10;
   const rightX = isLast ? rightRailX : el.x + el.width + 10;
 
@@ -239,6 +239,19 @@ function renderElement(
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
         </g>
+      );
+
+    case 'horizontalLine':
+      return (
+        <line
+          key={el.id}
+          x1={el.x}
+          y1={el.y}
+          x2={el.x + el.width}
+          y2={el.y}
+          stroke={colors.horizontalLine}
+          strokeWidth="1"
+        />
       );
 
     case 'verticalLine':

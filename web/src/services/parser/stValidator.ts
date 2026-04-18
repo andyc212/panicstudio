@@ -287,3 +287,106 @@ export function getScoreLabel(score: number): string {
   if (score >= 50) return '需检查';
   return '有错误';
 }
+
+export interface ValidationLogEntry {
+  timestamp: string;
+  codeName?: string;
+  codeLength: number;
+  plcModel?: string;
+  result: ValidationResult;
+}
+
+function escapeCSV(value: string): string {
+  if (/[",\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+/**
+ * 导出验证结果为 JSON 或 CSV 格式
+ * @param result 验证结果
+ * @param format 导出格式: 'json' | 'csv'
+ * @param metadata 附加元数据
+ * @returns 导出内容的字符串
+ */
+export function exportValidationResult(
+  result: ValidationResult,
+  format: 'json' | 'csv',
+  metadata?: { codeName?: string; codeLength?: number; plcModel?: string }
+): string {
+  const timestamp = new Date().toISOString();
+
+  if (format === 'json') {
+    const log: ValidationLogEntry = {
+      timestamp,
+      codeName: metadata?.codeName,
+      codeLength: metadata?.codeLength ?? 0,
+      plcModel: metadata?.plcModel,
+      result,
+    };
+    return JSON.stringify(log, null, 2);
+  }
+
+  // CSV format: one row per issue, plus summary row when no issues
+  const headers = [
+    'timestamp', 'codeName', 'codeLength', 'plcModel',
+    'score', 'passed', 'errorCount', 'warningCount', 'infoCount',
+    'issueId', 'severity', 'category', 'line', 'message', 'suggestion',
+  ];
+  const rows: string[] = [headers.join(',')];
+
+  const baseFields = [
+    timestamp,
+    metadata?.codeName ?? '',
+    String(metadata?.codeLength ?? 0),
+    metadata?.plcModel ?? '',
+    String(result.score),
+    String(result.passed),
+    String(result.summary.errors),
+    String(result.summary.warnings),
+    String(result.summary.infos),
+  ];
+
+  if (result.issues.length === 0) {
+    rows.push([...baseFields, '', '', '', '', '无问题', ''].map(escapeCSV).join(','));
+  } else {
+    result.issues.forEach((issue) => {
+      rows.push([
+        ...baseFields,
+        issue.id,
+        issue.severity,
+        issue.category,
+        String(issue.line ?? ''),
+        issue.message,
+        issue.suggestion ?? '',
+      ].map(escapeCSV).join(','));
+    });
+  }
+
+  return rows.join('\n');
+}
+
+/**
+ * 触发浏览器下载验证日志文件
+ */
+export function downloadValidationLog(
+  result: ValidationResult,
+  format: 'json' | 'csv',
+  metadata?: { codeName?: string; codeLength?: number; plcModel?: string }
+): void {
+  const content = exportValidationResult(result, format, metadata);
+  const mimeType = format === 'json' ? 'application/json;charset=utf-8' : 'text/csv;charset=utf-8';
+  const extension = format === 'json' ? 'json' : 'csv';
+  const filename = `${metadata?.codeName ?? 'validation'}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.${extension}`;
+
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
