@@ -37,10 +37,16 @@ export function ChatPanel() {
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3">
-        {activeChatTab === 'guided' && <GuidedMode />}
-        {activeChatTab === 'chat' && <ChatMode />}
-        {activeChatTab === 'history' && <HistoryMode />}
+      <div className="flex-1 overflow-y-auto p-3 relative">
+        <div className={activeChatTab === 'guided' ? '' : 'hidden'}>
+          <GuidedMode />
+        </div>
+        <div className={activeChatTab === 'chat' ? '' : 'hidden'}>
+          <ChatMode />
+        </div>
+        <div className={activeChatTab === 'history' ? '' : 'hidden'}>
+          <HistoryMode />
+        </div>
       </div>
     </div>
   );

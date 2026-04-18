@@ -68,12 +68,13 @@ export function LadderView() {
       {/* LD Canvas */}
       <div className="flex-1 overflow-auto p-2 min-h-0">
         {rungs.length > 0 ? (
-          <svg
-            width={maxWidth * zoom}
-            height={totalHeight * zoom}
-            viewBox={`0 0 ${maxWidth} ${totalHeight}`}
-            className="text-text-primary"
-          >
+          <div style={{ width: maxWidth * zoom, height: totalHeight * zoom, minWidth: '100%' }}>
+            <svg
+              width="100%"
+              height="100%"
+              viewBox={`0 0 ${maxWidth} ${totalHeight}`}
+              className="text-text-primary block"
+            >
             {rungs.map((rung, ri) => {
               const rowY = ri * 70 + 10;
               const busY = rowY + 30;
@@ -123,7 +124,8 @@ export function LadderView() {
                 </g>
               );
             })}
-          </svg>
+            </svg>
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full text-text-muted">
             <div className="text-center">
