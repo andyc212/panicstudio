@@ -100,6 +100,12 @@
     scrollbar-width: thin;
     scrollbar-color: var(--border-default) var(--bg-base);
   }
+
+  /* Global focus-visible styles */
+  *:focus-visible {
+    outline: 2px solid var(--text-accent);
+    outline-offset: 2px;
+  }
 }
 
 @layer components {

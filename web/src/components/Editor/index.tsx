@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Editor from '@monaco-editor/react';
 import { useProjectStore, useUIStore } from '@stores';
-import { FileCode } from 'lucide-react';
+import { FileCode, Plus, ArrowRight } from 'lucide-react';
 
 // IEC 61131-3 ST 语法高亮定义
 const iecStLanguageDef = {
@@ -122,7 +122,7 @@ const editorThemeLight = {
 
 export function STEditor() {
   const { t } = useTranslation();
-  const { currentProject, selectedPouId, updatePouBody } = useProjectStore();
+  const { currentProject, selectedPouId, updatePouBody, addPou, selectPou } = useProjectStore();
   const { editorJumpTarget, theme } = useUIStore();
   const selectedPou = currentProject?.poUs.find((p: import('@types').POU) => p.id === selectedPouId);
   const editorRef = useRef<any>(null);
@@ -225,6 +225,40 @@ export function STEditor() {
           <FileCode size={48} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">{t('editor.selectPou')}</p>
           <p className="text-xs mt-1">{t('editor.useAI')}</p>
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <button
+              onClick={() => {
+                const newPou = {
+                  id: `pou-${Date.now()}`,
+                  name: 'NewPOU',
+                  type: 'program' as const,
+                  language: 'st' as const,
+                  body: '',
+                  vars: { inputs: [], outputs: [], locals: [] },
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                };
+                addPou(newPou);
+                selectPou(newPou.id);
+              }}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors"
+              type="button"
+            >
+              <Plus size={12} />
+              {t('editor.createPou')}
+            </button>
+            <button
+              onClick={() => {
+                const store = useUIStore.getState();
+                store.setActiveChatTab('guided');
+              }}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-text-secondary text-xs font-medium hover:bg-base-light transition-colors"
+              type="button"
+            >
+              {t('editor.generateCode')}
+              <ArrowRight size={12} />
+            </button>
+          </div>
         </div>
       </div>
     );

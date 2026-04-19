@@ -116,6 +116,8 @@
   "editor": {
     "selectPou": "Select a POU to start editing",
     "useAI": "Or use the AI panel on the left to generate code",
+    "createPou": "Create New POU",
+    "generateCode": "Generate Code",
     "inputs": "IN",
     "outputs": "OUT",
     "locals": "LOCAL"
@@ -130,6 +132,7 @@
     "simStop": "Stop",
     "emptyTitle": "Ladder Diagram Visualization",
     "emptyHint": "Auto-generated from ST code",
+    "goToAI": "Go to AI Panel",
     "elementLabel": "{{label}} — Line {{line}}",
     "elementToggle": "{{label}} — {{state}} (click to toggle)"
   },
