@@ -12,8 +12,9 @@
 - **Stack**: React SPA (Vite + React 19 + TypeScript + Tailwind + Monaco) + Node.js API (Express + TypeScript + Prisma + SQLite)
 - **Paths**: Aliases `@components`, `@stores`, `@services`, `@types`, `@styles` configured in `vite.config.ts`
 - **Tests**: vitest in `web/`, 12 tests across `stParser.test.ts` (9) and `stValidator.test.ts` (3)
-- **Deploy**: Railway for API (`api/`) with SQLite volume at `/data`; frontend on Vercel (needs `vercel login`)
-- **Design**: Dark theme, brand orange `#f97316`, three-panel layout
+- **Deploy**: Railway for API (`api/`) with SQLite volume at `/data`; frontend on Vercel (Git-connected)
+- **Design**: Dark/Light dual theme, brand orange `#f97316`, three-panel layout
+- **Monorepo**: Frontend code lives in `web/` subdir; `vercel.json` at repo root sets `"rootDirectory": "web"`
 
 ---
 
@@ -56,10 +57,46 @@ App.tsx
 See `OPTIMIZATION_TODO.md` for full list. **P0, P1, and P2 are complete.** Currently ready for P3 items (Web Worker parsing, LD simulation mode).
 
 ### Known Issues
-- Vercel CLI not authenticated (`vercel login` required for auto-deploy)
 - ChatMode / HistoryMode are placeholder stubs
 - No global search / command palette
 - LD ↔ ST bidirectional linkage not implemented
+
+---
+
+## 2.5 Deploy & Version Management
+
+### Fixed URLs
+| Branch | Environment | URL |
+|--------|------------|-----|
+| `main` | Production | `https://plc-aistudio-web.vercel.app` |
+| `develop` | Preview (test) | `https://plc-aistudio-web-git-develop-andyc212-3496s-projects.vercel.app` |
+
+### Development Workflow
+```bash
+# 开发新功能 → 自动部署到 Preview
+git checkout develop
+git add .
+git commit -m "feat: xxx"
+git push origin develop   # Vercel auto-deploys to fixed Preview URL
+
+# 上线 → 自动部署到 Production
+git checkout main
+git merge develop
+git push origin main      # Vercel auto-deploys to Production URL
+```
+
+### Version Number
+- Defined in `web/src/config/version.ts` as `APP_VERSION`
+- Displayed in Toolbar (`BETA vX.Y.Z`) and Settings "About" section
+- Build time injected by Vite via `import.meta.env.VITE_BUILD_DATE`
+- Bump version before each significant release
+
+### Theme System
+- `tailwind.config.js`: `darkMode: 'class'`
+- CSS variables in `index.css`: `:root` = light, `.dark` = dark
+- `uiStore.ts`: `theme: 'dark' | 'light'`, persisted to `localStorage` (`panicstudio-theme`)
+- `main.tsx`: syncs `localStorage` theme to `document.documentElement.classList` on boot
+- Toolbar has ☀️/🌙 quick-toggle; Settings has Dark/Light selector
 
 ---
 
