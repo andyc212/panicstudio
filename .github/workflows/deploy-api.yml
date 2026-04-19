@@ -16,9 +16,8 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Login and Deploy API
+      - name: Deploy API
         run: |
-          railway login --token "$RAILWAY_TOKEN"
           cd api
           railway up --detach
         env:
