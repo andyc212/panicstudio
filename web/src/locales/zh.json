@@ -116,6 +116,8 @@
   "editor": {
     "selectPou": "选择一个 POU 开始编辑",
     "useAI": "或使用左侧 AI 面板生成代码",
+    "createPou": "新建 POU",
+    "generateCode": "生成代码",
     "inputs": "IN",
     "outputs": "OUT",
     "locals": "LOCAL"
@@ -130,6 +132,7 @@
     "simStop": "停止",
     "emptyTitle": "梯形图可视化区域",
     "emptyHint": "从 ST 代码自动生成",
+    "goToAI": "前往 AI 面板",
     "elementLabel": "{{label}} — 第 {{line}} 行",
     "elementToggle": "{{label}} — {{state}}（点击切换）"
   },

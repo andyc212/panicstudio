@@ -91,9 +91,18 @@ router.post('/generate', authMiddleware, async (req: AuthRequest, res) => {
 
       res.write(`data: ${JSON.stringify({ type: 'done', model })}\n\n`);
       res.end();
-    } catch (streamErr) {
+    } catch (streamErr: any) {
       console.error('Kimi stream error:', streamErr);
-      res.write(`data: ${JSON.stringify({ type: 'error', error: 'AI generation failed' })}\n\n`);
+      const errorMessage = streamErr?.message || '';
+      let userError = 'AI generation failed';
+      if (errorMessage.includes('context length') || errorMessage.includes('maximum context') || errorMessage.includes('too long')) {
+        userError = 'Prompt too long: The uploaded content exceeds the AI model\'s context limit. Try using a smaller file or fewer I/O entries.';
+      } else if (errorMessage.includes('rate limit')) {
+        userError = 'Rate limit exceeded. Please wait a moment and try again.';
+      } else if (errorMessage.includes('authentication') || errorMessage.includes('unauthorized') || errorMessage.includes('401')) {
+        userError = 'AI service authentication failed. Please contact support.';
+      }
+      res.write(`data: ${JSON.stringify({ type: 'error', error: userError })}\n\n`);
       res.end();
     }
   } catch (err) {

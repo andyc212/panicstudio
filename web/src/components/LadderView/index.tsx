@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useProjectStore, useUIStore } from '@stores';
-import { ZoomIn, ZoomOut, RefreshCw, Play, Square } from 'lucide-react';
+import { ZoomIn, ZoomOut, RefreshCw, Play, Square, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { parseSTtoLD, type LDElementType } from '@services/parser/stParser';
 
@@ -214,6 +214,17 @@ export function LadderView() {
               </svg>
               <p className="text-xs">{t('ladder.emptyTitle')}</p>
               <p className="text-[10px] mt-0.5">{t('ladder.emptyHint')}</p>
+              <button
+                onClick={() => {
+                  const store = useUIStore.getState();
+                  store.setActiveChatTab('guided');
+                }}
+                className="mt-2 inline-flex items-center gap-1 text-[10px] text-accent hover:text-accent-dark transition-colors"
+                type="button"
+              >
+                {t('ladder.goToAI')}
+                <ArrowRight size={10} />
+              </button>
             </div>
           </div>
         )}

@@ -9,12 +9,12 @@
     --bg-sidebar: #f6f8fa;
     --bg-editor: #ffffff;
     --bg-ld: #f6f8fa;
-    --bg-hover: #eaeef2;
+    --bg-hover: #e1e4e8;
     --bg-active: #d0d7de;
 
     --text-primary: #1f2328;
-    --text-secondary: #57606a;
-    --text-muted: #6e7781;
+    --text-secondary: #4a5561;
+    --text-muted: #5c6570;
     --text-accent: #f97316;
 
     --border-default: #d0d7de;
@@ -40,7 +40,7 @@
 
     --text-primary: #e6edf3;
     --text-secondary: #8b949e;
-    --text-muted: #6e7681;
+    --text-muted: #7a8390;
     --text-accent: #f97316;
 
     --border-default: #30363d;
@@ -99,6 +99,12 @@
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--border-default) var(--bg-base);
+  }
+
+  /* Global focus-visible styles */
+  *:focus-visible {
+    outline: 2px solid var(--text-accent);
+    outline-offset: 2px;
   }
 }
 
