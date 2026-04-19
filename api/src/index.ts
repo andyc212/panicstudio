@@ -21,7 +21,12 @@ app.use((req, _res, next) => {
 
 // Health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    version: '1.2.1',
+    features: ['32k-model-support', 'improved-error-messages'],
+  });
 });
 
 // Routes
