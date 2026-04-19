@@ -107,10 +107,11 @@ export interface KimiMessage {
 }
 
 /** 根据预估 token 量选择模型 */
-function selectModel(estimatedTokens: number): string {
+function selectModel(estimatedTokens: number, ioCount?: number): string {
   // 简单启发式：每个中文字符≈1.5 token，每个英文单词≈1.3 token
-  // 复杂程序（>30 I/O 或长流程）使用 32K 模型
-  if (estimatedTokens > 6000) {
+  // 8K 模型实际可用输入约 4K（需预留输出空间），容易溢出
+  // 只要有较多 I/O（>30）或预估 token 较大，就使用 32K 模型
+  if (estimatedTokens > 4000 || (ioCount && ioCount > 30)) {
     return 'moonshot-v1-32k';
   }
   return 'moonshot-v1-8k';
@@ -121,13 +122,15 @@ function estimatePromptTokens(formData?: {
   ioList?: Array<unknown>;
   processFlow?: Array<unknown>;
   scenario?: string;
+  additionalNotes?: string;
 }): number {
   if (!formData) return 2000;
-  const ioTokens = (formData.ioList?.length || 0) * 25;
-  const stepTokens = (formData.processFlow?.length || 0) * 30;
-  const baseTokens = 800; // system prompt
+  const ioTokens = (formData.ioList?.length || 0) * 35;
+  const stepTokens = (formData.processFlow?.length || 0) * 40;
+  const baseTokens = 2500; // system prompt (~3500 chars ≈ 2500 tokens)
   const scenarioTokens = (formData.scenario?.length || 0) * 1.5;
-  return Math.ceil(baseTokens + ioTokens + stepTokens + scenarioTokens + 500);
+  const notesTokens = (formData.additionalNotes?.length || 0) * 0.7;
+  return Math.ceil(baseTokens + ioTokens + stepTokens + scenarioTokens + notesTokens + 1000);
 }
 
 export async function* streamChatCompletion(
@@ -213,7 +216,8 @@ export function buildPromptFromForm(formData: {
 
   const prompt = lines.join('\n');
   const estimatedInput = estimatePromptTokens(formData);
-  const model = selectModel(estimatedInput);
+  const ioCount = formData.ioList?.length || 0;
+  const model = selectModel(estimatedInput, ioCount);
   // 输出 token：简单程序 4096，复杂程序 12000
   const maxTokens = model === 'moonshot-v1-32k' ? 12000 : 4096;
 
