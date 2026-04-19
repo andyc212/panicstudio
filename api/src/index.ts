@@ -29,6 +29,34 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+// Diagnostic endpoint - checks Kimi API connectivity
+app.get('/api/diagnostic', async (_req, res) => {
+  const kimiKeyConfigured = !!process.env.KIMI_API_KEY;
+  const kimiKeyPrefix = process.env.KIMI_API_KEY ? process.env.KIMI_API_KEY.slice(0, 8) + '...' : 'NOT SET';
+
+  let kimiTest = 'not tested';
+  if (kimiKeyConfigured) {
+    try {
+      const { streamChatCompletion } = await import('./services/kimiService');
+      const stream = streamChatCompletion([{ role: 'user', content: 'Hi' }], { model: 'moonshot-v1-8k', maxTokens: 10 });
+      const result = await stream.next();
+      kimiTest = result.done ? 'no response' : 'ok';
+    } catch (err: any) {
+      kimiTest = `error: ${err.message}`;
+    }
+  }
+
+  res.json({
+    status: 'ok',
+    version: '1.2.1',
+    kimiApiKeyConfigured: kimiKeyConfigured,
+    kimiApiKeyPrefix: kimiKeyPrefix,
+    kimiApiTest: kimiTest,
+    nodeEnv: process.env.NODE_ENV,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
