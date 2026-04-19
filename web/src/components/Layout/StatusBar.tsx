@@ -1,13 +1,18 @@
-import { Circle, Wifi, Cpu } from 'lucide-react';
+import { Circle, Wifi, Cpu, Edit3, Check, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '@stores';
+import { useAuthStore, useProjectStore } from '@stores';
+import { useState } from 'react';
 
 function LanguageToggle() {
   const { i18n } = useTranslation();
   const toggleLanguage = () => {
     const newLang = i18n.language === 'zh' ? 'en' : 'zh';
     i18n.changeLanguage(newLang);
-    localStorage.setItem('panicstudio-language', newLang);
+    try {
+      localStorage.setItem('panicstudio-language', newLang);
+    } catch {
+      // ignore
+    }
   };
   return (
     <button
@@ -23,6 +28,29 @@ function LanguageToggle() {
 export function StatusBar() {
   const { t } = useTranslation();
   const { user, isAuthenticated } = useAuthStore();
+  const { currentProject, renameProject, hasUnsavedChanges } = useProjectStore();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+
+  const handleStartEdit = () => {
+    if (!currentProject) return;
+    setEditName(currentProject.name);
+    setIsEditing(true);
+  };
+
+  const handleConfirm = () => {
+    renameProject(editName.trim());
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleConfirm();
+    if (e.key === 'Escape') handleCancel();
+  };
 
   return (
     <footer className="h-statusbar flex items-center justify-between px-3 bg-base-light border-t border-border text-[11px] text-text-muted select-none shrink-0">
@@ -40,9 +68,39 @@ export function StatusBar() {
 
       {/* 中间：项目信息 */}
       <div className="flex items-center gap-3">
-        <span>{t('statusBar.unnamedProject')}</span>
-        <span className="text-border">|</span>
-        <span>{t('statusBar.unsaved')}</span>
+        {isEditing ? (
+          <div className="flex items-center gap-1">
+            <input
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoFocus
+              className="px-1.5 py-0.5 rounded bg-sidebar-hover border border-border text-[11px] text-text-primary focus:outline-none focus:border-accent w-32"
+            />
+            <button onClick={handleConfirm} className="p-0.5 rounded hover:bg-success/10 text-success transition-colors">
+              <Check size={10} />
+            </button>
+            <button onClick={handleCancel} className="p-0.5 rounded hover:bg-error/10 text-error transition-colors">
+              <X size={10} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleStartEdit}
+            className="flex items-center gap-1 hover:text-text-primary transition-colors group"
+            title={t('projectTree.rename')}
+            type="button"
+          >
+            <span>{currentProject?.name || t('statusBar.unnamedProject')}</span>
+            <Edit3 size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+        )}
+        {hasUnsavedChanges && (
+          <>
+            <span className="text-border">|</span>
+            <span>{t('statusBar.unsaved')}</span>
+          </>
+        )}
       </div>
 
       {/* 右侧：网络 + 会员 */}

@@ -9,29 +9,29 @@ export default {
     extend: {
       colors: {
         base: {
-          DEFAULT: '#0f1117',
-          light: '#161b22',
+          DEFAULT: 'var(--bg-base)',
+          light: 'var(--bg-sidebar)',
         },
         sidebar: {
-          DEFAULT: '#161b22',
-          hover: '#21262d',
-          active: '#30363d',
+          DEFAULT: 'var(--bg-sidebar)',
+          hover: 'var(--bg-hover)',
+          active: 'var(--bg-active)',
         },
         editor: {
-          DEFAULT: '#1e1e2e',
-          highlight: '#2a2d3e',
+          DEFAULT: 'var(--bg-editor)',
+          highlight: 'var(--bg-hover)',
         },
         ld: {
-          DEFAULT: '#181825',
+          DEFAULT: 'var(--bg-ld)',
         },
         border: {
-          DEFAULT: '#30363d',
-          light: '#21262d',
+          DEFAULT: 'var(--border-default)',
+          light: 'var(--border-light)',
         },
         text: {
-          primary: '#e6edf3',
-          secondary: '#8b949e',
-          muted: '#484f58',
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
         },
         accent: {
           DEFAULT: '#f97316',
@@ -39,10 +39,10 @@ export default {
           dark: '#ea580c',
           glow: 'rgba(249, 115, 22, 0.15)',
         },
-        success: '#22c55e',
-        warning: '#eab308',
-        error: '#ef4444',
-        info: '#0ea5e9',
+        success: 'var(--success)',
+        warning: 'var(--warning)',
+        error: 'var(--error)',
+        info: 'var(--info)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'],

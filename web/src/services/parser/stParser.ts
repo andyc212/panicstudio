@@ -254,7 +254,7 @@ function buildRungFromConditions(
   outputs.forEach((output, oi) => {
     const elements: LDElement[] = [];
     let x = 35; // Start after left rail
-    const y = 30;
+    const y = 28;
     let hasParallel = false;
 
     // Build contact chain from conditions
@@ -262,13 +262,13 @@ function buildRungFromConditions(
     if (conditions.length > 0) {
       conditions.forEach((group, gi) => {
         let groupX = x;
-        const groupY = gi > 0 ? 50 : 30;
+        const groupY = gi > 0 ? 54 : 28;
 
         group.forEach((cond, ci) => {
           elements.push({
             id: `r${rungId}-${oi}-g${gi}-c${ci}`,
             type: cond.negated ? 'contactNC' : 'contactNO',
-            x: groupX, y: groupY, width: 40, height: 30,
+            x: groupX, y: groupY, width: 40, height: 22,
             label: cond.name,
           });
           groupX += 60;
@@ -285,12 +285,12 @@ function buildRungFromConditions(
       conditions.forEach((group, gi) => {
         const groupEndX = 35 + group.length * 60 - 10;
         if (groupEndX < branchEndX) {
-          const groupY = gi > 0 ? 50 : 30;
+          const groupY = gi > 0 ? 54 : 28;
           elements.push({
             id: `r${rungId}-${oi}-h${gi}`,
             type: 'horizontalLine',
             x: groupEndX,
-            y: groupY + 15,
+            y: groupY + 11,
             width: branchEndX - groupEndX,
             height: 1,
             label: '',
@@ -302,7 +302,7 @@ function buildRungFromConditions(
         elements.push({
           id: `r${rungId}-${oi}-v1`,
           type: 'verticalLine',
-          x: branchEndX, y: 30, width: 2, height: 35, label: '',
+          x: branchEndX, y: 28, width: 2, height: 30, label: '',
         });
       }
     }
@@ -319,8 +319,8 @@ function buildRungFromConditions(
       id: `r${rungId}-${oi}-coil`,
       type: coilType,
       x: coilX,
-      y: 30,
-      width: 30, height: 30,
+      y: 28,
+      width: 30, height: 22,
       label: output.var,
     });
 
@@ -329,7 +329,7 @@ function buildRungFromConditions(
       title: `Network ${rungId + oi}`,
       elements: elements.map((el) => ({ ...el, sourceLine })),
       width: coilX + 90,
-      height: hasParallel ? 80 : 60,
+      height: hasParallel ? 88 : 68,
       sourceLine,
     });
   });
@@ -342,11 +342,11 @@ function buildTimerRung(rungId: number, inVar: string, timerName: string, ptValu
     id: rungId,
     title: `Timer: ${timerName}`,
     elements: [
-      { id: `r${rungId}-in`, type: 'contactNO', x: 35, y: 30, width: 40, height: 30, label: inVar, sourceLine },
-      { id: `r${rungId}-timer`, type: 'timerTON', x: 95, y: 25, width: 50, height: 40, label: timerName, params: { PT: ptValue }, sourceLine },
+      { id: `r${rungId}-in`, type: 'contactNO', x: 35, y: 28, width: 40, height: 22, label: inVar, sourceLine },
+      { id: `r${rungId}-timer`, type: 'timerTON', x: 95, y: 24, width: 50, height: 38, label: timerName, params: { PT: ptValue }, sourceLine },
     ],
     width: 205,
-    height: 60,
+    height: 68,
     sourceLine,
   };
 }
@@ -356,11 +356,11 @@ function buildCounterRung(rungId: number, cuVar: string, counterName: string, pv
     id: rungId,
     title: `Counter: ${counterName}`,
     elements: [
-      { id: `r${rungId}-cu`, type: 'contactNO', x: 35, y: 30, width: 40, height: 30, label: cuVar, sourceLine },
-      { id: `r${rungId}-cnt`, type: 'counterCTU', x: 95, y: 25, width: 50, height: 40, label: counterName, params: { PV: pvValue }, sourceLine },
+      { id: `r${rungId}-cu`, type: 'contactNO', x: 35, y: 28, width: 40, height: 22, label: cuVar, sourceLine },
+      { id: `r${rungId}-cnt`, type: 'counterCTU', x: 95, y: 24, width: 50, height: 38, label: counterName, params: { PV: pvValue }, sourceLine },
     ],
     width: 205,
-    height: 60,
+    height: 68,
     sourceLine,
   };
 }

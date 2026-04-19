@@ -39,7 +39,14 @@ export const useUIStore = create<UIState>((set) => ({
   rightPanelWidth: 260,
   editorSplitRatio: 0.6,
   rightPanelSplitRatio: 0.67,
-  theme: 'dark',
+  theme: (() => {
+    try {
+      const saved = localStorage.getItem('panicstudio-theme');
+      return saved === 'light' ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  })(),
   activeChatTab: 'guided',
   onboardingCompleted: false,
   editorJumpTarget: null,
@@ -50,7 +57,19 @@ export const useUIStore = create<UIState>((set) => ({
   setRightPanelWidth: (width) => set({ rightPanelWidth: width }),
   setEditorSplitRatio: (ratio) => set({ editorSplitRatio: ratio }),
   setRightPanelSplitRatio: (ratio) => set({ rightPanelSplitRatio: ratio }),
-  setTheme: (theme) => set({ theme }),
+  setTheme: (theme) => {
+    try {
+      localStorage.setItem('panicstudio-theme', theme);
+    } catch {
+      // ignore
+    }
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    set({ theme });
+  },
   setActiveChatTab: (tab) => set({ activeChatTab: tab }),
   completeOnboarding: () => set({ onboardingCompleted: true }),
   jumpToLine: (line) => set({ editorJumpTarget: { line, timestamp: Date.now() } }),

@@ -37,14 +37,22 @@ function getHistory(): HistoryRecord[] {
 }
 
 function saveHistory(record: HistoryRecord) {
-  const history = getHistory();
-  history.unshift(record);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 100)));
+  try {
+    const history = getHistory();
+    history.unshift(record);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 100)));
+  } catch {
+    // ignore
+  }
 }
 
 function deleteHistory(id: string) {
-  const history = getHistory().filter((h) => h.id !== id);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  try {
+    const history = getHistory().filter((h) => h.id !== id);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch {
+    // ignore
+  }
 }
 
 export function ChatPanel() {
@@ -103,9 +111,9 @@ function GuidedMode() {
   const [processSteps, setProcessSteps] = useState([{ description: '' }]);
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [safetyConditions, setSafetyConditions] = useState([
-    { id: '1', description: '急停复位后才能重启', enabled: true },
-    { id: '2', description: '电机过载保护', enabled: true },
-    { id: '3', description: '安全门联锁', enabled: false },
+    { id: '1', description: 'safety.emergencyStopReset', enabled: true },
+    { id: '2', description: 'safety.motorOverload', enabled: true },
+    { id: '3', description: 'safety.safetyDoorInterlock', enabled: false },
   ]);
   const [notes, setNotes] = useState('');
 
@@ -266,7 +274,7 @@ function GuidedMode() {
         // Save to history
         const validation = validateSTCode(code, {
           declaredIO: ioList.filter((io) => io.address).map((io) => ({ address: io.address, name: io.name || io.address, type: io.type as 'INPUT' | 'OUTPUT' })),
-          requiredSafetyConditions: safetyConditions.filter((s) => s.enabled).map((s) => s.description),
+          requiredSafetyConditions: safetyConditions.filter((s) => s.enabled).map((s) => t(s.description)),
         });
         saveHistory({
           id: crypto.randomUUID(),
@@ -447,7 +455,7 @@ function GuidedMode() {
           {safetyConditions.map((s) => (
             <label key={s.id} className="flex items-center gap-2 text-[11px] text-text-secondary cursor-pointer">
               <input type="checkbox" checked={s.enabled} onChange={() => toggleSafety(s.id)} className="rounded border-border bg-sidebar text-accent focus:ring-accent" />
-              {s.description}
+              {t(s.description)}
             </label>
           ))}
         </div>
@@ -545,7 +553,7 @@ function GuidedMode() {
           codeName={currentProject?.name || scenario}
           plcModel={currentProject?.plcModel}
           declaredIO={ioList.filter((io) => io.address).map((io) => ({ address: io.address, name: io.name || io.address, type: io.type as 'INPUT' | 'OUTPUT' }))}
-          requiredSafetyConditions={safetyConditions.filter((s) => s.enabled).map((s) => s.description)}
+          requiredSafetyConditions={safetyConditions.filter((s) => s.enabled).map((s) => t(s.description))}
         />
       )}
     </div>

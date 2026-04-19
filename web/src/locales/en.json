@@ -183,6 +183,35 @@
     "connected": "Connected",
     "guest": "Guest"
   },
+  "settings": {
+    "title": "Settings",
+    "close": "Close",
+    "language": "Language",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light",
+    "about": "About",
+    "version": "Version",
+    "buildTime": "Build Time",
+    "environment": "Environment",
+    "production": "Production",
+    "preview": "Preview",
+    "deployUrl": "Deploy URL",
+    "rollbackHint": "Historical versions can be viewed in Vercel Dashboard → Deployments. Each Preview URL is permanent."
+  },
+  "safety": {
+    "emergencyStopReset": "E-Stop reset before restart",
+    "motorOverload": "Motor overload protection",
+    "safetyDoorInterlock": "Safety door interlock"
+  },
+  "varTable": {
+    "title": "Variable Table",
+    "count": "{{count}} vars",
+    "address": "Address",
+    "name": "Name",
+    "dataType": "Type",
+    "emptyHint": "Select a POU to view variables"
+  },
   "common": {
     "cancel": "Cancel",
     "confirm": "Confirm",

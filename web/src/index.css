@@ -4,6 +4,33 @@
 
 @layer base {
   :root {
+    /* Light theme */
+    --bg-base: #ffffff;
+    --bg-sidebar: #f6f8fa;
+    --bg-editor: #ffffff;
+    --bg-ld: #f6f8fa;
+    --bg-hover: #eaeef2;
+    --bg-active: #d0d7de;
+
+    --text-primary: #1f2328;
+    --text-secondary: #57606a;
+    --text-muted: #6e7781;
+    --text-accent: #f97316;
+
+    --border-default: #d0d7de;
+    --border-light: #eaeef2;
+
+    --success: #22c55e;
+    --warning: #eab308;
+    --error: #ef4444;
+    --info: #0ea5e9;
+
+    --ai-gradient-start: #f97316;
+    --ai-gradient-end: #fb923c;
+    --ai-glow: rgba(249, 115, 22, 0.15);
+  }
+
+  .dark {
     --bg-base: #0f1117;
     --bg-sidebar: #161b22;
     --bg-editor: #1e1e2e;
@@ -13,7 +40,7 @@
 
     --text-primary: #e6edf3;
     --text-secondary: #8b949e;
-    --text-muted: #484f58;
+    --text-muted: #6e7681;
     --text-accent: #f97316;
 
     --border-default: #30363d;
@@ -41,6 +68,7 @@
     background-color: var(--bg-base);
     color: var(--text-primary);
     overflow: hidden;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   #root {
@@ -66,11 +94,17 @@
   ::-webkit-scrollbar-thumb:hover {
     background: var(--text-muted);
   }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-default) var(--bg-base);
+  }
 }
 
 @layer components {
   .editor-highlight-line {
-    background-color: rgba(249, 115, 22, 0.15) !important;
+    background-color: var(--ai-glow) !important;
     border-left: 2px solid var(--text-accent);
   }
 }

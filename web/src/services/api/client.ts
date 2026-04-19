@@ -11,9 +11,13 @@ export const apiClient = axios.create({
 
 // Attach JWT token to every request
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('panicstudio-token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  try {
+    const token = localStorage.getItem('panicstudio-token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {
+    // ignore
   }
   return config;
 });
@@ -23,7 +27,11 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('panicstudio-token');
+      try {
+        localStorage.removeItem('panicstudio-token');
+      } catch {
+        // ignore
+      }
       window.location.reload();
     }
     return Promise.reject(error);

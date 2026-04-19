@@ -3,7 +3,15 @@ import { initReactI18next } from 'react-i18next';
 import en from './locales/en.json';
 import zh from './locales/zh.json';
 
-const savedLang = localStorage.getItem('panicstudio-language');
+function getSavedLang(): string | null {
+  try {
+    return localStorage.getItem('panicstudio-language');
+  } catch {
+    return null;
+  }
+}
+
+const savedLang = getSavedLang();
 
 const resources = {
   en: { translation: en },
@@ -19,6 +27,13 @@ i18n
     interpolation: {
       escapeValue: false, // React already escapes
     },
+    react: {
+      useSuspense: false,
+    },
   });
 
+// Expose for debugging
+if (typeof window !== 'undefined') {
+  (window as any).i18n = i18n;
+}
 export default i18n;

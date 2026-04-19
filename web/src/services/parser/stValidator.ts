@@ -208,10 +208,12 @@ export function validateSTCode(code: string, context?: ValidationContext): Valid
   // === 4. 安全条件检查 ===
   if (context?.requiredSafetyConditions) {
     const codeLower = code.toLowerCase();
+    const conditionsLower = context.requiredSafetyConditions.map((c) => c.toLowerCase());
 
     // 检查急停逻辑
     const hasEStop = /e_stop|estop|emergency|急停/i.test(code);
-    if (!hasEStop && context.requiredSafetyConditions.some((c) => c.includes('急停'))) {
+    const needsEStop = conditionsLower.some((c) => c.includes('急停') || c.includes('e-stop') || c.includes('estop') || c.includes('emergency stop'));
+    if (!hasEStop && needsEStop) {
       issues.push({
         id: 'safety-estop',
         severity: 'error',
@@ -224,7 +226,8 @@ export function validateSTCode(code: string, context?: ValidationContext): Valid
     // 检查互锁逻辑
     const hasInterlock = /interlock|互锁|互鎖/i.test(code) ||
       (codeLower.includes('and not') && codeLower.includes('or not'));
-    if (!hasInterlock && context.requiredSafetyConditions.some((c) => c.includes('互锁'))) {
+    const needsInterlock = conditionsLower.some((c) => c.includes('互锁') || c.includes('interlock'));
+    if (!hasInterlock && needsInterlock) {
       issues.push({
         id: 'safety-interlock',
         severity: 'warning',
@@ -236,7 +239,8 @@ export function validateSTCode(code: string, context?: ValidationContext): Valid
 
     // 检查复位逻辑
     const hasReset = /reset|复位|復位|fault.*false/i.test(code);
-    if (!hasReset && context.requiredSafetyConditions.some((c) => c.includes('复位'))) {
+    const needsReset = conditionsLower.some((c) => c.includes('复位') || c.includes('reset'));
+    if (!hasReset && needsReset) {
       issues.push({
         id: 'safety-reset',
         severity: 'warning',

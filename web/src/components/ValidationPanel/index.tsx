@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useUIStore } from '@stores';
 import { validateSTCode, getScoreColor, getScoreLabel, downloadValidationLog } from '@services/parser/stValidator';
 import type { ValidationIssue, ValidationResult } from '@services/parser/stValidator';
-import { AlertCircle, AlertTriangle, Info, CheckCircle, ChevronDown, ChevronUp, Download, ArrowRight } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Info, CheckCircle, ChevronDown, ChevronUp, Download, ArrowRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface ValidationPanelProps {
@@ -17,6 +17,7 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
   const { t } = useTranslation();
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [exportFormat, setExportFormat] = useState<'json' | 'csv'>('json');
   const [showExportMenu, setShowExportMenu] = useState(false);
 
@@ -117,6 +118,14 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
               </div>
             )}
           </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); if (!isExpanded) setIsExpanded(true); setIsMaximized(!isMaximized); }}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-sidebar-active text-text-muted hover:text-text-primary transition-colors"
+            title={isMaximized ? 'Restore' : 'Maximize'}
+            type="button"
+          >
+            {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+          </button>
           {isExpanded ? <ChevronUp size={14} className="text-text-muted" /> : <ChevronDown size={14} className="text-text-muted" />}
         </div>
       </button>
@@ -146,7 +155,7 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
       )}
 
       {/* Issues List */}
-      {isExpanded && (
+      {isExpanded && !isMaximized && (
         <div className="max-h-48 overflow-y-auto">
           {result.issues.length === 0 ? (
             <div className="px-3 py-4 text-center">
@@ -166,6 +175,102 @@ export function ValidationPanel({ code, codeName, plcModel, declaredIO, required
             </div>
           )}
         </div>
+      )}
+
+      {/* Maximized Modal */}
+      {isMaximized && isExpanded && (
+        <div className="fixed inset-4 z-50 rounded-lg border border-border bg-base shadow-2xl flex flex-col overflow-hidden">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-sidebar-hover border-b border-border shrink-0">
+            <div className="flex items-center gap-2">
+              {result.passed ? (
+                <CheckCircle size={16} className="text-success" />
+              ) : (
+                <AlertCircle size={16} className="text-error" />
+              )}
+              <span className="text-sm font-medium text-text-primary">{t('validation.title')}</span>
+              <span
+                className="text-xs px-2 py-0.5 rounded font-bold"
+                style={{ backgroundColor: `${scoreColor}20`, color: scoreColor }}
+              >
+                {result.score} · {scoreLabel}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {result.summary.errors > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded bg-error/10 text-error">
+                  {result.summary.errors} {t('validation.errors')}
+                </span>
+              )}
+              {result.summary.warnings > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded bg-warning/10 text-warning">
+                  {result.summary.warnings} {t('validation.warnings')}
+                </span>
+              )}
+              <button
+                onClick={() => setIsMaximized(false)}
+                className="flex items-center gap-1 px-2 py-1 rounded hover:bg-sidebar-active text-text-muted hover:text-text-primary transition-colors"
+                type="button"
+              >
+                <Minimize2 size={14} />
+                <span className="text-xs">Restore</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Modal Body */}
+          <div className="flex-1 overflow-auto p-4 space-y-4">
+            {/* Dimensions */}
+            {result.dimensions && (
+              <div className="rounded-lg border border-border/50 bg-sidebar-hover/30 p-3">
+                <div className="text-xs text-text-muted mb-2">{t('validation.dimensions')}</div>
+                <div className="space-y-2">
+                  {result.dimensions.map((dim) => (
+                    <div key={dim.name} className="flex items-center gap-2">
+                      <span className="text-xs text-text-secondary w-24 shrink-0">{t(`validation.dim${dim.name.charAt(0).toUpperCase() + dim.name.slice(1)}` as any) || dim.label}</span>
+                      <div className="flex-1 h-2 rounded-full bg-sidebar-active overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${dim.score}%`,
+                            backgroundColor: getScoreColor(dim.score),
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs text-text-muted w-8 text-right">{dim.score}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Issues */}
+            <div className="rounded-lg border border-border/50 overflow-hidden">
+              {result.issues.length === 0 ? (
+                <div className="px-4 py-6 text-center">
+                  <CheckCircle size={32} className="mx-auto mb-2 text-success" />
+                  <p className="text-sm text-text-secondary">{t('validation.passed')}</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/50">
+                  {result.issues.map((issue) => (
+                    <IssueItem
+                      key={issue.id}
+                      issue={issue}
+                      isExpanded={expandedIssues.has(issue.id)}
+                      onToggle={() => toggleIssue(issue.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Backdrop for maximized modal */}
+      {isMaximized && isExpanded && (
+        <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setIsMaximized(false)} />
       )}
     </div>
   );

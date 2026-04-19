@@ -4,7 +4,43 @@ import { ZoomIn, ZoomOut, RefreshCw, Play, Square } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { parseSTtoLD, type LDElementType } from '@services/parser/stParser';
 
-const ELEMENT_COLORS: Record<LDElementType, string> = {
+/** Wrap SVG text into multiple lines to prevent overlap */
+function SvgWrappedText({
+  x,
+  y,
+  text,
+  maxChars = 6,
+  lineHeight = 9,
+  textAnchor = 'middle',
+  fill,
+  style,
+}: {
+  x: number;
+  y: number;
+  text: string;
+  maxChars?: number;
+  lineHeight?: number;
+  textAnchor?: string;
+  fill: string;
+  style?: React.CSSProperties;
+}) {
+  if (!text) return null;
+  const lines: string[] = [];
+  for (let i = 0; i < text.length; i += maxChars) {
+    lines.push(text.slice(i, i + maxChars));
+  }
+  return (
+    <text x={x} y={y} textAnchor={textAnchor as any} fill={fill} style={style}>
+      {lines.map((line, idx) => (
+        <tspan key={idx} x={x} dy={idx === 0 ? 0 : lineHeight}>
+          {line}
+        </tspan>
+      ))}
+    </text>
+  );
+}
+
+const ELEMENT_COLORS_DARK: Record<LDElementType, string> = {
   leftRail: '#e6edf3',
   rightRail: '#e6edf3',
   contactNO: '#61afef',
@@ -21,10 +57,28 @@ const ELEMENT_COLORS: Record<LDElementType, string> = {
   comment: '#5c6370',
 };
 
+const ELEMENT_COLORS_LIGHT: Record<LDElementType, string> = {
+  leftRail: '#1f2328',
+  rightRail: '#1f2328',
+  contactNO: '#2563eb',
+  contactNC: '#dc2626',
+  coil: '#16a34a',
+  coilSet: '#ca8a04',
+  coilReset: '#ea580c',
+  timerTON: '#a16207',
+  timerTOF: '#a16207',
+  counterCTU: '#7c3aed',
+  horizontalLine: '#d0d7de',
+  verticalLine: '#d0d7de',
+  branch: '#d0d7de',
+  comment: '#656d76',
+};
+
 export function LadderView() {
   const { t } = useTranslation();
   const { currentProject, selectedPouId } = useProjectStore();
-  const { jumpToLine } = useUIStore();
+  const { jumpToLine, theme } = useUIStore();
+  const elementColors = theme === 'dark' ? ELEMENT_COLORS_DARK : ELEMENT_COLORS_LIGHT;
   const selectedPou = currentProject?.poUs.find((p: import('@types').POU) => p.id === selectedPouId);
   const [zoom, setZoom] = useState(1);
   const [simMode, setSimMode] = useState(false);
@@ -40,7 +94,7 @@ export function LadderView() {
     return Math.max(600, ...rungs.map((r) => r.width + 60));
   }, [rungs]);
 
-  const totalHeight = Math.max(100, rungs.length * 100 + 30);
+  const totalHeight = Math.max(100, rungs.length * 110 + 30);
 
   return (
     <div className="flex-1 border-t border-border bg-ld flex flex-col min-h-0">
@@ -96,15 +150,13 @@ export function LadderView() {
               className="text-text-primary block"
             >
             {rungs.map((rung, ri) => {
-              const rowY = ri * 100 + 15;
+              const rowY = ri * 110 + 15;
               const busY = 40; // relative to rowY transform
 
               return (
                 <g key={rung.id} transform={`translate(0, ${rowY})`}>
                   {/* Network title */}
-                  <text x="5" y={10} className="fill-text-muted" style={{ fontSize: '9px' }}>
-                    {rung.title}
-                  </text>
+                  <SvgWrappedText x={5} y={10} text={rung.title || ''} textAnchor="start" maxChars={12} lineHeight={9} fill="#8b949e" style={{ fontSize: '9px' }} />
 
                   {/* Left rail */}
                   <line
@@ -112,7 +164,7 @@ export function LadderView() {
                     y1={15}
                     x2="15"
                     y2={85}
-                    stroke={ELEMENT_COLORS.leftRail}
+                    stroke={elementColors.leftRail}
                     strokeWidth="2"
                   />
 
@@ -122,14 +174,14 @@ export function LadderView() {
                     y1={busY}
                     x2={maxWidth - 15}
                     y2={busY}
-                    stroke={ELEMENT_COLORS.horizontalLine}
+                    stroke={elementColors.horizontalLine}
                     strokeWidth="1"
                     opacity="0.3"
                   />
 
                   {/* Elements */}
                   {rung.elements.map((el, ei) =>
-                    renderElement(el, ELEMENT_COLORS, ei === 0, ei === rung.elements.length - 1, busY, maxWidth - 15, jumpToLine, simMode, simStates, setSimStates, t)
+                    renderElement(el, elementColors, ei === 0, ei === rung.elements.length - 1, busY, maxWidth - 15, jumpToLine, simMode, simStates, setSimStates, t)
                   )}
 
                   {/* Right rail */}
@@ -138,7 +190,7 @@ export function LadderView() {
                     y1={15}
                     x2={maxWidth - 15}
                     y2={85}
-                    stroke={ELEMENT_COLORS.rightRail}
+                    stroke={elementColors.rightRail}
                     strokeWidth="2"
                   />
                 </g>
@@ -235,7 +287,7 @@ function renderElement(
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <rect x={el.x} y={el.y} width={el.width} height={el.height} fill={simActive ? 'rgba(34,197,94,0.1)' : 'none'} stroke={activeStroke || colors.contactNO} strokeWidth={simActive ? '2' : '1.5'} rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill={simActive ? '#22c55e' : '#8b949e'} style={{ fontSize: '9px' }}>{el.label}</text>
+          <SvgWrappedText x={cx} y={el.y + el.height + 12} text={el.label || ''} textAnchor="middle" fill={simActive ? '#22c55e' : '#8b949e'} style={{ fontSize: '9px' }} />
         </g>
       );
 
@@ -246,7 +298,7 @@ function renderElement(
           <rect x={el.x} y={el.y} width={el.width} height={el.height} fill={simActive ? 'rgba(34,197,94,0.1)' : 'none'} stroke={activeStroke || colors.contactNC} strokeWidth={simActive ? '2' : '1.5'} rx="2" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <line x1={el.x + 4} y1={el.y + 4} x2={el.x + el.width - 4} y2={el.y + el.height - 4} stroke={activeStroke || colors.contactNC} strokeWidth="1" />
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill={simActive ? '#22c55e' : '#8b949e'} style={{ fontSize: '9px' }}>{el.label}</text>
+          <SvgWrappedText x={cx} y={el.y + el.height + 12} text={el.label || ''} textAnchor="middle" fill={simActive ? '#22c55e' : '#8b949e'} style={{ fontSize: '9px' }} />
         </g>
       );
 
@@ -256,7 +308,7 @@ function renderElement(
           <line x1={leftX} y1={cy} x2={el.x} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
           <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coil} strokeWidth="1.5" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
+          <SvgWrappedText x={cx} y={el.y + el.height + 12} text={el.label || ''} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }} />
         </g>
       );
 
@@ -267,7 +319,7 @@ function renderElement(
           <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coilSet} strokeWidth="1.5" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <text x={cx} y={cy + 3} textAnchor="middle" fill={colors.coilSet} style={{ fontSize: '10px', fontWeight: 'bold' }}>S</text>
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
+          <SvgWrappedText x={cx} y={el.y + el.height + 12} text={el.label || ''} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }} />
         </g>
       );
 
@@ -278,7 +330,7 @@ function renderElement(
           <circle cx={cx} cy={cy} r={el.height / 2} fill="none" stroke={colors.coilReset} strokeWidth="1.5" className={clickable ? 'hover:stroke-[#f97316]' : ''} />
           <text x={cx} y={cy + 3} textAnchor="middle" fill={colors.coilReset} style={{ fontSize: '10px', fontWeight: 'bold' }}>R</text>
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
+          <SvgWrappedText x={cx} y={el.y + el.height + 12} text={el.label || ''} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }} />
         </g>
       );
 
@@ -290,7 +342,7 @@ function renderElement(
           <text x={cx} y={cy - 4} textAnchor="middle" fill={colors.timerTON} style={{ fontSize: '9px', fontWeight: 'bold' }}>TON</text>
           <text x={cx} y={cy + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '8px' }}>{el.params?.PT || ''}</text>
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
+          <SvgWrappedText x={cx} y={el.y + el.height + 12} text={el.label || ''} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }} />
         </g>
       );
 
@@ -302,7 +354,7 @@ function renderElement(
           <text x={cx} y={cy - 4} textAnchor="middle" fill={colors.counterCTU} style={{ fontSize: '9px', fontWeight: 'bold' }}>CTU</text>
           <text x={cx} y={cy + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '8px' }}>PV={el.params?.PV || ''}</text>
           <line x1={el.x + el.width} y1={cy} x2={rightX} y2={cy} stroke={colors.horizontalLine} strokeWidth="1" />
-          <text x={cx} y={el.y + el.height + 12} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }}>{el.label}</text>
+          <SvgWrappedText x={cx} y={el.y + el.height + 12} text={el.label || ''} textAnchor="middle" fill="#8b949e" style={{ fontSize: '9px' }} />
         </g>
       );
 

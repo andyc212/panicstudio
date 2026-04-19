@@ -70,7 +70,7 @@ const iecStLanguageDef = {
   },
 };
 
-const editorTheme = {
+const editorThemeDark = {
   base: 'vs-dark' as const,
   inherit: true,
   rules: [
@@ -95,12 +95,38 @@ const editorTheme = {
   },
 };
 
+const editorThemeLight = {
+  base: 'vs' as const,
+  inherit: true,
+  rules: [
+    { token: 'keyword', foreground: '#a855f7' },
+    { token: 'type', foreground: '#ca8a04' },
+    { token: 'identifier', foreground: '#2563eb' },
+    { token: 'comment', foreground: '#6b7280', fontStyle: 'italic' },
+    { token: 'number', foreground: '#d97706' },
+    { token: 'number.float', foreground: '#d97706' },
+    { token: 'string', foreground: '#16a34a' },
+    { token: 'operator', foreground: '#0891b2' },
+    { token: 'delimiter', foreground: '#4b5563' },
+  ],
+  colors: {
+    'editor.background': '#ffffff',
+    'editor.lineHighlightBackground': '#f6f8fa',
+    'editor.selectionBackground': '#bfdbfe',
+    'editor.inactiveSelectionBackground': '#dbeafe',
+    'editorCursor.foreground': '#f97316',
+    'editorLineNumber.foreground': '#d0d7de',
+    'editorLineNumber.activeForeground': '#656d76',
+  },
+};
+
 export function STEditor() {
   const { t } = useTranslation();
   const { currentProject, selectedPouId, updatePouBody } = useProjectStore();
-  const { editorJumpTarget } = useUIStore();
+  const { editorJumpTarget, theme } = useUIStore();
   const selectedPou = currentProject?.poUs.find((p: import('@types').POU) => p.id === selectedPouId);
   const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
 
   // Clear decorations on unmount
@@ -119,12 +145,14 @@ export function STEditor() {
 
   const handleEditorDidMount = useCallback((editor: any, monaco: any) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
 
     // Register IEC 61131-3 ST language
     monaco.languages.register({ id: 'iec-st' });
     monaco.languages.setMonarchTokensProvider('iec-st', iecStLanguageDef);
-    monaco.editor.defineTheme('panicstudio-dark', editorTheme);
-    monaco.editor.setTheme('panicstudio-dark');
+    monaco.editor.defineTheme('panicstudio-dark', editorThemeDark);
+    monaco.editor.defineTheme('panicstudio-light', editorThemeLight);
+    monaco.editor.setTheme(theme === 'dark' ? 'panicstudio-dark' : 'panicstudio-light');
 
     // Auto-indent rules
     monaco.languages.setLanguageConfiguration('iec-st', {
@@ -145,6 +173,13 @@ export function STEditor() {
       updatePouBody(selectedPouId, value);
     }
   }, [selectedPouId, updatePouBody]);
+
+  // Sync Monaco theme when app theme changes
+  useEffect(() => {
+    if (monacoRef.current) {
+      monacoRef.current.editor.setTheme(theme === 'dark' ? 'panicstudio-dark' : 'panicstudio-light');
+    }
+  }, [theme]);
 
   // Jump to line when editorJumpTarget changes
   useEffect(() => {

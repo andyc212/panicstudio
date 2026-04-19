@@ -1,7 +1,9 @@
 import { useProjectStore } from '@stores';
 import { Database } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function VarTable() {
+  const { t } = useTranslation();
   const { currentProject, selectedPouId } = useProjectStore();
   const selectedPou = currentProject?.poUs.find((p: import('@types').POU) => p.id === selectedPouId);
 
@@ -15,8 +17,8 @@ export function VarTable() {
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-base-light">
         <Database size={12} className="text-text-muted" />
-        <span className="text-[11px] font-medium text-text-secondary">变量表</span>
-        <span className="text-[10px] text-text-muted ml-auto">{allVars.length} 个</span>
+        <span className="text-[11px] font-medium text-text-secondary">{t('varTable.title')}</span>
+        <span className="text-[10px] text-text-muted ml-auto">{t('varTable.count', { count: allVars.length })}</span>
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -24,9 +26,9 @@ export function VarTable() {
           <table className="w-full text-[11px]">
             <thead className="bg-sidebar text-text-muted sticky top-0">
               <tr>
-                <th className="px-2 py-1 text-left font-normal">地址</th>
-                <th className="px-2 py-1 text-left font-normal">名称</th>
-                <th className="px-2 py-1 text-left font-normal">类型</th>
+                <th className="px-2 py-1 text-left font-normal">{t('varTable.address')}</th>
+                <th className="px-2 py-1 text-left font-normal">{t('varTable.name')}</th>
+                <th className="px-2 py-1 text-left font-normal">{t('varTable.dataType')}</th>
               </tr>
             </thead>
             <tbody>
@@ -49,7 +51,7 @@ export function VarTable() {
           </table>
         ) : (
           <div className="flex items-center justify-center h-full text-text-muted text-xs">
-            <span>选择一个 POU 查看变量</span>
+            <span>{t('varTable.emptyHint')}</span>
           </div>
         )}
       </div>

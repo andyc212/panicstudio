@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { Zap, FolderOpen, Save, Download, Settings, User, Menu, LogOut } from 'lucide-react';
+import { Zap, FolderOpen, Save, Download, Settings, User, Menu, LogOut, Sun, Moon } from 'lucide-react';
+import { APP_VERSION, APP_BUILD_DATE, IS_PRODUCTION } from '@/config/version';
 import { useTranslation } from 'react-i18next';
 import { useUIStore, useAuthStore, useProjectStore } from '@stores';
 import { AuthModal } from '@components/AuthModal';
+import { SettingsModal } from '@components/Settings';
 
 export function Toolbar() {
   const { t } = useTranslation();
-  const { toggleLeftPanel, toggleRightPanel } = useUIStore();
+  const { toggleLeftPanel, toggleRightPanel, theme, setTheme } = useUIStore();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [showAuth, setShowAuth] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   return (
     <>
@@ -25,14 +28,37 @@ export function Toolbar() {
             <Menu size={18} />
           </button>
 
-          <div className="flex items-center gap-1.5 ml-1">
+          <div className="flex items-center gap-1.5 ml-1 group relative">
             <Zap size={20} className="text-accent" />
             <span className="font-semibold text-text-primary text-sm tracking-tight">
               PLC-AIStudio
             </span>
+            {/* Theme toggle */}
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-1 rounded-md text-text-secondary hover:text-text-primary hover:bg-sidebar-hover transition-colors"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              type="button"
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-medium">
               BETA
             </span>
+            <span className="text-[10px] text-text-muted">
+              v{APP_VERSION}
+            </span>
+            {/* Version Tooltip */}
+            <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-50">
+              <div className="rounded-md border border-border bg-base shadow-lg px-3 py-2 whitespace-nowrap">
+                <div className="text-[10px] text-text-secondary">
+                  Build: {new Date(APP_BUILD_DATE).toLocaleString()}
+                </div>
+                <div className="text-[10px] text-text-muted mt-0.5">
+                  {IS_PRODUCTION ? '🟢 Production' : '🟠 Preview'}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -46,7 +72,7 @@ export function Toolbar() {
 
         {/* 右侧：设置 + 用户 */}
         <div className="flex items-center gap-1">
-          <ToolbarButton icon={<Settings size={16} />} label={t('toolbar.settings')} />
+          <ToolbarButton icon={<Settings size={16} />} label={t('toolbar.settings')} onClick={() => setShowSettings(true)} />
           <div className="w-px h-5 bg-border mx-1" />
           <button
             onClick={toggleRightPanel}
@@ -89,6 +115,7 @@ export function Toolbar() {
       </header>
 
       <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </>
   );
 }
@@ -97,10 +124,12 @@ function ToolbarButton({
   icon,
   label,
   variant = 'default',
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   variant?: 'default' | 'accent';
+  onClick?: () => void;
 }) {
   const baseClasses =
     'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors';
@@ -110,7 +139,7 @@ function ToolbarButton({
       : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-hover';
 
   return (
-    <button className={`${baseClasses} ${variantClasses}`} type="button">
+    <button onClick={onClick} className={`${baseClasses} ${variantClasses}`} type="button">
       {icon}
       <span>{label}</span>
     </button>
@@ -118,6 +147,7 @@ function ToolbarButton({
 }
 
 function ExportButton() {
+  const { t } = useTranslation();
   const { currentProject, selectedPouId } = useProjectStore();
   const selectedPou = currentProject?.poUs.find((p: import('@types').POU) => p.id === selectedPouId);
 

@@ -20,6 +20,7 @@ interface ProjectState {
   removePou: (pouId: string) => void;
   renamePou: (pouId: string, name: string) => void;
   duplicatePou: (pouId: string) => void;
+  renameProject: (name: string) => void;
   markAsSaved: () => void;
   markAsUnsaved: () => void;
 }
@@ -76,7 +77,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
         // 无项目时自动创建默认项目
         const newProject: PLCProject = {
           id: crypto.randomUUID(),
-          name: '未命名项目',
+          name: '',
           plcModel: 'FP0R',
           description: '',
           poUs: [pou],
@@ -133,7 +134,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
       const clone: POU = {
         ...original,
         id: crypto.randomUUID(),
-        name: `${original.name}_副本`,
+        name: `${original.name}_copy`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -143,6 +144,19 @@ export const useProjectStore = create<ProjectState>((set) => ({
           poUs: [...state.currentProject.poUs, clone],
         },
         selectedPouId: clone.id,
+        hasUnsavedChanges: true,
+      };
+    }),
+
+  renameProject: (name) =>
+    set((state) => {
+      if (!state.currentProject) return state;
+      return {
+        currentProject: {
+          ...state.currentProject,
+          name,
+          updatedAt: new Date().toISOString(),
+        },
         hasUnsavedChanges: true,
       };
     }),

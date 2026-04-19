@@ -183,6 +183,35 @@
     "connected": "已连接",
     "guest": "访客模式"
   },
+  "settings": {
+    "title": "设置",
+    "close": "关闭",
+    "language": "语言",
+    "theme": "主题",
+    "dark": "深色",
+    "light": "浅色",
+    "about": "关于",
+    "version": "版本",
+    "buildTime": "构建时间",
+    "environment": "环境",
+    "production": "生产环境",
+    "preview": "预览环境",
+    "deployUrl": "部署地址",
+    "rollbackHint": "历史版本可在 Vercel Dashboard → Deployments 中查看，每个 Preview URL 永久有效。"
+  },
+  "safety": {
+    "emergencyStopReset": "急停复位后才能重启",
+    "motorOverload": "电机过载保护",
+    "safetyDoorInterlock": "安全门联锁"
+  },
+  "varTable": {
+    "title": "变量表",
+    "count": "{{count}} 个",
+    "address": "地址",
+    "name": "名称",
+    "dataType": "类型",
+    "emptyHint": "选择一个 POU 查看变量"
+  },
   "common": {
     "cancel": "取消",
     "confirm": "确认",

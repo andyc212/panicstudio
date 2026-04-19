@@ -212,6 +212,7 @@ function PouItem({
   onEditNameChange: (v: string) => void;
   onFinishEdit: () => void;
 }) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const validation = validateSTCode(pou.body || '');
   const lineCount = (pou.body || '').split('\n').length;
